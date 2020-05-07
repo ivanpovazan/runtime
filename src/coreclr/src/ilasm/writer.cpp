@@ -205,8 +205,8 @@ HRESULT Assembler::CreateDebugDirectory()
     ULONG deOffset;
 
     // Only emit this if we're also emitting debug info.
-    if (!(m_fGeneratePDB && m_pSymWriter))
-        return S_OK;
+    //if (!(m_fGeneratePDB && m_pSymWriter))
+    //    return S_OK;
 
     IMAGE_DEBUG_DIRECTORY  debugDirIDD;
     struct Param
@@ -216,9 +216,48 @@ HRESULT Assembler::CreateDebugDirectory()
     } param;
     param.debugDirData = NULL;
 
+    /*
+    DWORD   Characteristics;
+    DWORD   TimeDateStamp;
+    WORD    MajorVersion;
+    WORD    MinorVersion;
+    DWORD   Type;
+    DWORD   SizeOfData;
+    DWORD   AddressOfRawData;
+    DWORD   PointerToRawData;
+    */
+
+    GUID dummy;
+    if (FAILED(hr = CoCreateGuid(&dummy)))
+        goto ErrExit;
+
+    char dbgPath[15] = "D://mypath.txt";
+    UINT len = 4 + sizeof(dummy) + 1 + 15;
+    BYTE* dbgDirData = new BYTE[len];
+
+    DWORD rsds = 0x53445352;
+    UINT offset = 0;
+    _memccpy(dbgDirData + offset, &rsds, 0, sizeof(rsds));
+    offset += sizeof(rsds);
+    _memccpy(dbgDirData + offset, &dummy, 0, sizeof(dummy));
+    offset += sizeof(dummy);
+    memset(dbgDirData + offset, 1, sizeof(UINT));
+    offset += sizeof(UINT);
+    _memccpy(dbgDirData + offset, &dbgPath, 0, sizeof(dbgPath));
+
+    debugDirIDD.Characteristics = 0;
+    // debugDirIDD.TimeDateStamp
+    debugDirIDD.MajorVersion = 256;
+    debugDirIDD.MinorVersion = 20557;
+    debugDirIDD.Type = 2;
+    debugDirIDD.SizeOfData = len;
+    debugDirIDD.AddressOfRawData = 0; // somewhere in text
+    debugDirIDD.PointerToRawData = 0; // somewhere relative
+
     // Get the debug info from the symbol writer.
-    if (FAILED(hr=m_pSymWriter->GetDebugInfo(NULL, 0, &param.debugDirDataSize, NULL)))
-        return hr;
+    //if (FAILED(hr=m_pSymWriter->GetDebugInfo(NULL, 0, &param.debugDirDataSize, NULL)))
+    //    return hr;
+    param.debugDirDataSize = len;
 
     // Will there even be any?
     if (param.debugDirDataSize == 0)
@@ -231,13 +270,15 @@ HRESULT Assembler::CreateDebugDirectory()
         hr = E_FAIL;
     } PAL_ENDTRY
 
+        param.debugDirData = dbgDirData;
+
     if(FAILED(hr)) return hr;
     // Actually get the data now.
-    if (FAILED(hr = m_pSymWriter->GetDebugInfo(&debugDirIDD,
+    /*if (FAILED(hr = m_pSymWriter->GetDebugInfo(&debugDirIDD,
                                                param.debugDirDataSize,
                                                NULL,
                                                param.debugDirData)))
-        goto ErrExit;
+        goto ErrExit;*/
 
     // Grab the timestamp of the PE file.
     DWORD fileTimeStamp;
