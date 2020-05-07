@@ -49,3 +49,10 @@ static const BYTE s_NestedClassCol[];
 static const BYTE s_GenericParamCol[];
 static const BYTE s_MethodSpecCol[];
 static const BYTE s_GenericParamConstraintCol[];
+/* Portable PDB tables */
+// -- Dummy descriptors to fill the gap to 0x30
+static const BYTE s_Dummy1Col[];
+static const BYTE s_Dummy2Col[];
+static const BYTE s_Dummy3Col[];
+// -- Actual portable PDB tables descriptors
+static const BYTE s_DocumentCol[];

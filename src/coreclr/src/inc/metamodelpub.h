@@ -1520,6 +1520,41 @@ public:
     };
 };
 
+/* Portable PDB tables */
+// -- Dummy records to fill the gap to 0x30
+class DummyRec
+{
+public:
+    enum {
+        COL_COUNT,
+        COL_KEY
+    };
+};
+class Dummy1Rec : public DummyRec {};
+class Dummy2Rec : public DummyRec {};
+class Dummy3Rec : public DummyRec {};
+
+class DocumentRec
+{
+public:
+    enum {
+        COL_Name,
+        COL_HashAlgorithm,
+        COL_Hash,
+        COL_Language,
+        COL_COUNT,
+        COL_KEY
+    };
+};
+
+// MiniMdTable(MethodDebugInformation) \
+// MiniMdTable(LocalScope) \
+// MiniMdTable(LocalVariable) \
+// MiniMdTable(LocalConstant) \
+// MiniMdTable(ImportScope) \
+// MiniMdTable(StateMachineMethod) \
+// MiniMdTable(CustomDebugInformation) \
+
 #include <poppack.h>
 
 // List of MiniMd tables.
@@ -1570,14 +1605,28 @@ public:
     MiniMdTable(GenericParam)     \
     MiniMdTable(MethodSpec)     \
     MiniMdTable(GenericParamConstraint) \
+    /* Portable PDB tables */ \
+    /* -- Dummy tables to fill the gap to 0x30 */ \
+    MiniMdTable(Dummy1)                             /* 0x2D */ \
+    MiniMdTable(Dummy2)                             /* 0x2E */ \
+    MiniMdTable(Dummy3)                             /* 0x2F */ \
+    /* -- Actual portable PDB tables */                        \
+    MiniMdTable(Document)                           /* 0x30 */ \
+    // MiniMdTable(MethodDebugInformation)             /* 0x31 */ \
+    // MiniMdTable(LocalScope)                         /* 0x32 */ \
+    // MiniMdTable(LocalVariable)                      /* 0x33 */ \
+    // MiniMdTable(LocalConstant)                      /* 0x34 */ \
+    // MiniMdTable(ImportScope)                        /* 0x35 */ \
+    // MiniMdTable(StateMachineMethod)                 /* 0x36 */ \
+    // MiniMdTable(CustomDebugInformation)             /* 0x37 */ \
 
 #undef MiniMdTable
 #define MiniMdTable(x) TBL_##x,
 enum {
     MiniMdTables()
-    TBL_COUNT,                              // Highest table.
-    TBL_COUNT_V1 = TBL_NestedClass + 1,    // Highest table in v1.0 database
-    TBL_COUNT_V2 = TBL_GenericParamConstraint + 1 // Highest in v2.0 database
+    TBL_COUNT,                                      // Highest table.
+    TBL_COUNT_V1 = TBL_NestedClass + 1,             // Highest table in v1.0 database
+    TBL_COUNT_V2 = TBL_Document + 1                 // Highest in v2.0 database // TODO: adjust to implemented portable pdb tables
 };
 #undef MiniMdTable
 

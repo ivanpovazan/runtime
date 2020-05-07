@@ -398,4 +398,28 @@
     SCHEMA_ITEM_CDTKN(GenericParamConstraint, Constraint, TypeDefOrRef)
     SCHEMA_TABLE_END(GenericParamConstraint)
 
+
+    /* Portable PDB tables */
+    //-------------------------------------------------------------------------
+    //Dummy tables to fill the gap to 0x30
+    SCHEMA_TABLE_START(Dummy1)
+    NULL
+    SCHEMA_TABLE_END(Dummy1)
+
+    SCHEMA_TABLE_START(Dummy2)
+    NULL
+    SCHEMA_TABLE_END(Dummy2)
+
+    SCHEMA_TABLE_START(Dummy3)
+    NULL
+    SCHEMA_TABLE_END(Dummy3)
+
+    //-------------------------------------------------------------------------
+    //Document
+    SCHEMA_TABLE_START(Document)
+    SCHEMA_ITEM_BLOB(Document, Name)
+    SCHEMA_ITEM_GUID(Document, HashAlgorithm)
+    SCHEMA_ITEM_BLOB(Document, Hash)
+    SCHEMA_ITEM_GUID(Document, Language)
+    SCHEMA_TABLE_END(Document)
 // eof ------------------------------------------------------------------------

@@ -413,6 +413,10 @@ public:
     AddTblRecord(MethodSpec)
     AddTblRecord(GenericParamConstraint)
 
+    /* Portable PDB tables */
+    AddTblRecord(Document)
+    // TODO: rest of the tables
+
     // Specialized AddXxxToYyy() functions.
     __checkReturn HRESULT AddMethodToTypeDef(RID td, RID md);
     __checkReturn HRESULT AddFieldToTypeDef(RID td, RID md);

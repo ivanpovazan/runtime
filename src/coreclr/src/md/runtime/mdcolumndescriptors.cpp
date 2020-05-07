@@ -164,6 +164,16 @@ const BYTE CMiniMdBase::s_MethodSpecCol[] = {2,
 const BYTE CMiniMdBase::s_GenericParamConstraintCol[] = {1,
   42,0,2,  64,2,2,
 };
+/* Portable PDB tables */
+// -- Dummy descriptors to fill the gap to 0x30
+const BYTE CMiniMdBase::s_Dummy1Col[] = { NULL };
+const BYTE CMiniMdBase::s_Dummy2Col[] = { NULL };
+const BYTE CMiniMdBase::s_Dummy3Col[] = { NULL };
+// -- Actual portable PDB tables descriptors
+const BYTE CMiniMdBase::s_DocumentCol[] = { 2,
+  103,0,2, 102,2,2, 103,4,2, 102,6,2,
+  103,0,4, 102,4,2, 103,6,2, 102,8,4,
+};
 
 const BYTE* const CMiniMdBase::s_TableColumnDescriptors[] = {
 s_ModuleCol,
@@ -210,5 +220,12 @@ s_ManifestResourceCol,
 s_NestedClassCol,
 s_GenericParamCol,
 s_MethodSpecCol,
-s_GenericParamConstraintCol
+s_GenericParamConstraintCol,
+/* Portable PDB tables */
+// -- Dummy descriptors to fill the gap to 0x30
+s_Dummy1Col,
+s_Dummy2Col,
+s_Dummy3Col,
+// -- Actual portable PDB tables descriptors
+s_DocumentCol
 };

@@ -110,7 +110,11 @@
 class VerifyLayoutsMD
 {
     // we have a bunch of arrays with this fixed size, make sure it doesn't change
-    static_assert_no_msg(TBL_COUNT == 45);
+    /* Initial '45' number seems a bit magical if we increase the table count for portable PDB support.
+    Is something going to break based on previous comment?
+    Hopefully there isn't a static array of size 45 laying around somewhere in the code
+    */
+    static_assert_no_msg(TBL_COUNT == 49);
 
 
 
