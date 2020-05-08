@@ -64,7 +64,7 @@ HRESULT Assembler::InitMetaDataForENC(__in __nullterminated WCHAR* wzOrigFileNam
         goto exit;
 
     //WszSetEnvironmentVariable(L"COMP_ENC_EMIT", wzOrigFileName);
-    if(!Init()) goto exit; // close and re-open CeeFileGen and CeeFile
+    if(!Init(m_fGeneratePDB)) goto exit; // close and re-open CeeFileGen and CeeFile
     hr = S_OK;
 
 

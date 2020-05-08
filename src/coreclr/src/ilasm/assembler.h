@@ -775,6 +775,7 @@ public:
     ICeeFileGen        *m_pCeeFileGen;
     IMetaDataImport2    *m_pImporter;			// Import interface.
     HCEEFILE m_pCeeFile;
+    HCEEFILE m_pCeeFilePdb;
     HCEESECTION m_pGlobalDataSection;
     HCEESECTION m_pILSection;
     HCEESECTION m_pTLSSection;
@@ -843,7 +844,7 @@ public:
     void    AddToImplList(mdToken);
     void    ClearBoundList(void);
     //--------------------------------------------------------------------------------
-    BOOL Init();
+    BOOL Init(bool generatePdb);
     void ProcessLabel(__in_z __in char *pszName);
     GlobalLabel *FindGlobalLabel(LPCUTF8 pszName);
     GlobalFixup *AddDeferredGlobalFixup(__in __nullterminated char *pszLabel, BYTE* reference);
@@ -1045,6 +1046,7 @@ public:
     BOOL  m_fGeneratePDB;
     char m_szSourceFileName[MAX_FILENAME_LENGTH*3+1];
     WCHAR m_wzOutputFileName[MAX_FILENAME_LENGTH];
+    WCHAR m_wzOutputPdbFilename[MAX_FILENAME_LENGTH];
     WCHAR m_wzSourceFileName[MAX_FILENAME_LENGTH];
 	GUID	m_guidLang;
 	GUID	m_guidLangVendor;

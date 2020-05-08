@@ -95,6 +95,7 @@ WCHAR       *pwzDeltaFiles[1024];
 char        szInputFilename[MAX_FILENAME_LENGTH*3];
 WCHAR       wzInputFilename[MAX_FILENAME_LENGTH];
 WCHAR       wzOutputFilename[MAX_FILENAME_LENGTH];
+WCHAR       wzOutputPdbFilename[MAX_FILENAME_LENGTH];
 
 
 #ifdef _PREFAST_
@@ -131,6 +132,7 @@ extern "C" int _cdecl wmain(int argc, __in WCHAR **argv)
 
     g_uConsoleCP = GetConsoleOutputCP();
     memset(wzOutputFilename,0,sizeof(wzOutputFilename));
+    memset(wzOutputPdbFilename, 0, sizeof(wzOutputPdbFilename));
 
 #ifdef _DEBUG
     DisableThrowCheck();
@@ -598,7 +600,8 @@ extern "C" int _cdecl wmain(int argc, __in WCHAR **argv)
                 delete pAsm;
                 goto ErrorExit;
             }
-            if(!pAsm->Init())
+
+            if(!pAsm->Init(!bNoDebug))
             {
                 fprintf(stderr,"Failed to initialize Assembler\n");
                 delete pAsm;
@@ -610,18 +613,30 @@ extern "C" int _cdecl wmain(int argc, __in WCHAR **argv)
             if(wzOutputFilename[0] == 0)
             {
                 wcscpy_s(wzOutputFilename,MAX_FILENAME_LENGTH,pwzInputFiles[0]);
-                size_t j = wcslen(wzOutputFilename);
-                do
+                WCHAR* extPos = wcsrchr(wzOutputFilename, L'.');
+                if (extPos != NULL)
+                    *extPos = 0;
+                wcscat_s(wzOutputFilename, MAX_FILENAME_LENGTH, (IsDLL ? W(".dll") : (IsOBJ ? W(".obj") : W(".exe"))));
+
+                if (!bNoDebug) // TODO: can be extracted into a function
                 {
-                    j--;
-                    if(wzOutputFilename[j] == L'.')
-                    {
-                        wzOutputFilename[j] = 0;
-                        break;
-                    }
+                    wcscpy_s(wzOutputPdbFilename, MAX_FILENAME_LENGTH, pwzInputFiles[0]);
+                    extPos = wcsrchr(wzOutputPdbFilename, L'.');
+                    if (extPos != NULL)
+                        *extPos = 0;
+                    wcscat_s(wzOutputPdbFilename, MAX_FILENAME_LENGTH, W(".pdb"));
                 }
-                while(j);
-                wcscat_s(wzOutputFilename, MAX_FILENAME_LENGTH,(IsDLL ? W(".dll") : (IsOBJ ? W(".obj") : W(".exe"))));
+            }
+            else
+            {
+                if (!bNoDebug)
+                {
+                    wcscpy_s(wzOutputPdbFilename, MAX_FILENAME_LENGTH, wzOutputFilename);
+                    WCHAR* extPos = wcsrchr(wzOutputPdbFilename, L'.');
+                    if (extPos != NULL)
+                        *extPos = 0;
+                    wcscat_s(wzOutputPdbFilename, MAX_FILENAME_LENGTH, W(".pdb"));
+                }
             }
             if(wzIncludePath == NULL)
             {
@@ -648,6 +663,8 @@ extern "C" int _cdecl wmain(int argc, __in WCHAR **argv)
                 pAsm->SetDLL(IsDLL);
                 pAsm->SetOBJ(IsOBJ);
                 wcscpy_s(pAsm->m_wzOutputFileName,MAX_FILENAME_LENGTH,wzOutputFilename);
+                if (pAsm->m_fGeneratePDB)
+                    wcscpy_s(pAsm->m_wzOutputPdbFilename, MAX_FILENAME_LENGTH, wzOutputPdbFilename);
                 strcpy_s(pAsm->m_szSourceFileName,MAX_FILENAME_LENGTH*3+1,szInputFilename);
 
                 if (SUCCEEDED(pAsm->InitMetaData()))
@@ -742,6 +759,14 @@ extern "C" int _cdecl wmain(int argc, __in WCHAR **argv)
                                 {
                                     exitval = 1;
                                     pParser->msg("Failed to write output file, error code=0x%08X\n",hr);
+                                }
+                                if (pAsm->m_fGeneratePDB)
+                                {
+                                    if (FAILED(hr = pAsm->m_pCeeFileGen->GenerateCeeFile(pAsm->m_pCeeFilePdb)))
+                                    {
+                                        exitval = 1;
+                                        pParser->msg("Failed to write output pdb file, error code=0x%08X\n", hr);
+                                    }
                                 }
                                 if(bClock) cw.cEnd = GetTickCount();
 #define ENC_ENABLED

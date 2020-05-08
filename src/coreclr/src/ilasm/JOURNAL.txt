@@ -1,0 +1,4 @@
+- after getting blob index might want to use compression (COM) CorSigUncompressedDataSize etc for Document name blob index
+- add pdb stream support
+- add pdb-metadata object
+- extend the IMetaData emitter to support required additional methods

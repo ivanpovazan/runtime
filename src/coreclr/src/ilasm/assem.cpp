@@ -65,6 +65,7 @@ Assembler::Assembler()
 
     m_pCeeFileGen            = NULL;
     m_pCeeFile               = 0;
+    m_pCeeFilePdb            = 0;
 
     m_pManifest         = NULL;
 
@@ -189,6 +190,9 @@ Assembler::~Assembler()
         if (m_pCeeFile)
             m_pCeeFileGen->DestroyCeeFile(&m_pCeeFile);
 
+        if (m_pCeeFilePdb)
+            m_pCeeFileGen->DestroyCeeFile(&m_pCeeFilePdb);
+
         DestroyICeeFileGen(&m_pCeeFileGen);
 
         m_pCeeFileGen = NULL;
@@ -228,11 +232,16 @@ Assembler::~Assembler()
 }
 
 
-BOOL Assembler::Init()
+BOOL Assembler::Init(bool generatePdb)
 {
+    m_fGeneratePDB = generatePdb;
+
     if (m_pCeeFileGen != NULL) {
         if (m_pCeeFile)
             m_pCeeFileGen->DestroyCeeFile(&m_pCeeFile);
+
+        if (m_pCeeFilePdb)
+            m_pCeeFileGen->DestroyCeeFile(&m_pCeeFilePdb);
 
         DestroyICeeFileGen(&m_pCeeFileGen);
 
@@ -246,6 +255,9 @@ BOOL Assembler::Init()
     if (FAILED(m_pCeeFileGen->GetSectionCreate(m_pCeeFile, ".il", sdReadOnly, &m_pILSection))) return FALSE;
     if (FAILED(m_pCeeFileGen->GetSectionCreate (m_pCeeFile, ".sdata", sdReadWrite, &m_pGlobalDataSection))) return FALSE;
     if (FAILED(m_pCeeFileGen->GetSectionCreate (m_pCeeFile, ".tls", sdReadWrite, &m_pTLSSection))) return FALSE;
+
+    if (m_fGeneratePDB)
+        if (FAILED(m_pCeeFileGen->CreateCeeFileEx(&m_pCeeFilePdb, (ULONG)m_dwCeeFileFlags))) return FALSE;
 
     return TRUE;
 }

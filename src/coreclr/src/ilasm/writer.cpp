@@ -1323,6 +1323,9 @@ HRESULT Assembler::CreatePEFile(__in __nullterminated WCHAR *pwzOutputFilename)
 
     if (FAILED(hr=m_pCeeFileGen->SetOutputFileName(m_pCeeFile, pwzOutputFilename))) goto exit;
 
+    if (m_fGeneratePDB)
+        if (FAILED(hr = m_pCeeFileGen->SetOutputFileName(m_pCeeFilePdb, m_wzOutputPdbFilename))) goto exit;
+
         // Reserve a buffer for the meta-data
     DWORD metaDataSize;
     if (FAILED(hr=m_pEmitter->GetSaveSize(cssAccurate, &metaDataSize))) goto exit;

@@ -1402,7 +1402,7 @@ unsigned Assembler::OpcodeLen(Instr* instr)
 /**************************************************************************/
 void Assembler::EmitOpcode(Instr* instr)
 {
-    if(m_fGeneratePDB &&
+    if(m_fGeneratePDB && (m_pSymWriter != NULL) &&
        ((instr->linenum != m_ulLastDebugLine)
         ||(instr->column != m_ulLastDebugColumn)
         ||(instr->linenum_end != m_ulLastDebugLineEnd)
@@ -2377,7 +2377,7 @@ void Assembler::SetSourceFileName(__in __nullterminated char* szName)
                 strcpy_s(m_szSourceFileName,MAX_FILENAME_LENGTH*3+1,szName);
                 WszMultiByteToWideChar(g_uCodePage,0,szName,-1,m_wzSourceFileName,MAX_FILENAME_LENGTH);
             }
-            if(m_fGeneratePDB)
+            if(m_fGeneratePDB && (m_pSymWriter != NULL))
             {
                 DocWriter* pDW;
                 unsigned i=0;
