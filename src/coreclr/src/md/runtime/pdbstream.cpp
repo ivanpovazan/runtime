@@ -13,7 +13,7 @@ PdbStream::~PdbStream()
 {
     if (m_TypeSystemTableRows != NULL)
     {
-        delete[] m_TypeSystemTableRows;
+        free(m_TypeSystemTableRows);
         m_TypeSystemTableRows = NULL;
         m_TypeSystemTableRowsSize = 0;
     }
