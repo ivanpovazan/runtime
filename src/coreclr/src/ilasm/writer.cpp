@@ -44,11 +44,16 @@ HRESULT Assembler::InitMetaData()
         hr = m_pDisp->SetOption(MetaDataRuntimeVersion, &encOption);
         ::SysFreeString(bstr);
     }
-    hr = m_pDisp->DefineScope(CLSID_CorMetaDataRuntime, 0, IID_IMetaDataEmit2,
-                        (IUnknown **)&m_pEmitter);
-    if (FAILED(hr))
+
+    if (FAILED(hr = m_pDisp->DefineScope(CLSID_CorMetaDataRuntime, 0, IID_IMetaDataEmit2, (IUnknown**)&m_pEmitter)))
         goto exit;
 
+    if (m_fGeneratePDB) {
+        if (FAILED(hr = m_pDisp->DefinePdbScope(CLSID_CorMetaDataRuntime, 0, IID_IMetaDataEmit2, (IUnknown**)&m_pEmitterPdb)))
+            goto exit;
+    }
+
+    // TODO: what about importers and import scope for debug information ?
     m_pManifest->SetEmitter(m_pEmitter);
     if(FAILED(hr = m_pEmitter->QueryInterface(IID_IMetaDataImport2, (void**)&m_pImporter)))
         goto exit;
@@ -197,7 +202,7 @@ HRESULT Assembler::CreateTLSDirectory() {
     return(hr);
 }
 
-HRESULT Assembler::CreateDebugDirectory()
+HRESULT Assembler::CreateDebugDirectory(GUID* mvid)
 {
     HRESULT hr = S_OK;
     HCEESECTION sec = m_pILSection;
@@ -227,20 +232,16 @@ HRESULT Assembler::CreateDebugDirectory()
     DWORD   PointerToRawData;
     */
 
-    GUID dummy;
-    if (FAILED(hr = CoCreateGuid(&dummy)))
-        goto ErrExit;
-
     char dbgPath[15] = "D://mypath.txt";
-    UINT len = 4 + sizeof(dummy) + 1 + 15;
+    UINT len = 4 + sizeof(GUID) + 1 + 15;
     BYTE* dbgDirData = new BYTE[len];
 
     DWORD rsds = 0x53445352;
     UINT offset = 0;
     _memccpy(dbgDirData + offset, &rsds, 0, sizeof(rsds));
     offset += sizeof(rsds);
-    _memccpy(dbgDirData + offset, &dummy, 0, sizeof(dummy));
-    offset += sizeof(dummy);
+    _memccpy(dbgDirData + offset, mvid, 0, sizeof(GUID));
+    offset += sizeof(GUID);
     memset(dbgDirData + offset, 1, sizeof(UINT));
     offset += sizeof(UINT);
     _memccpy(dbgDirData + offset, &dbgPath, 0, sizeof(dbgPath));
@@ -1061,6 +1062,11 @@ HRESULT Assembler::CreatePEFile(__in __nullterminated WCHAR *pwzOutputFilename)
         printf("Error: Cannot create a PE file with no metadata\n");
         return E_FAIL;
     }
+    if (m_fGeneratePDB && !m_pEmitterPdb)
+    {
+        printf("Error: Cannot create a PDB PE file with no metadata\n");
+        return E_FAIL;
+    }
     if(!(m_fDLL || m_fEntryPointPresent))
     {
         printf("Error: No entry point declared for executable\n");
@@ -1319,12 +1325,11 @@ HRESULT Assembler::CreatePEFile(__in __nullterminated WCHAR *pwzOutputFilename)
 
     if (FAILED(hr=CreateTLSDirectory())) goto exit;
 
-    if (FAILED(hr=CreateDebugDirectory())) goto exit;
+    GUID mvid;
+    if (FAILED(hr = m_pEmitter->GetMvid(&mvid))) goto exit;
+    if (FAILED(hr=CreateDebugDirectory(&mvid))) goto exit;
 
     if (FAILED(hr=m_pCeeFileGen->SetOutputFileName(m_pCeeFile, pwzOutputFilename))) goto exit;
-
-    if (m_fGeneratePDB)
-        if (FAILED(hr = m_pCeeFileGen->SetOutputFileName(m_pCeeFilePdb, m_wzOutputPdbFilename))) goto exit;
 
         // Reserve a buffer for the meta-data
     DWORD metaDataSize;
@@ -1557,8 +1562,20 @@ HRESULT Assembler::CreatePEFile(__in __nullterminated WCHAR *pwzOutputFilename)
     }
 
     if(bClock) bClock->cFilegenBegin = GetTickCount();
+    
+
+    if (m_fGeneratePDB) {
+        if (FAILED(hr = m_pEmitterPdb->DefineDocument(m_wzSourceFileName, &m_guidLang, new BYTE[2], &m_guidLang))) goto exit;
+        DWORD fileTimeStamp;
+        if (FAILED(hr = m_pCeeFileGen->GetFileTimeStamp(m_pCeeFile, &fileTimeStamp))) goto exit;
+        mdMethodDef entryPoint;
+        if (FAILED(hr = m_pCeeFileGen->GetEntryPoint(m_pCeeFile, &entryPoint))) goto exit;        
+        if (FAILED(hr = m_pEmitterPdb->DefinePdbStream(&mvid, fileTimeStamp, entryPoint))) goto exit;
+        if (FAILED(hr = m_pEmitterPdb->Save(m_wzOutputPdbFilename, NULL))) goto exit;
+    }
+
     // actually output the meta-data
-    if (FAILED(hr=m_pCeeFileGen->EmitMetaDataAt(m_pCeeFile, m_pEmitter, m_pILSection, metaDataOffset, metaData, metaDataSize))) goto exit;
+    if (FAILED(hr = m_pCeeFileGen->EmitMetaDataAt(m_pCeeFile, m_pEmitter, m_pILSection, metaDataOffset, metaData, metaDataSize))) goto exit;
 
     if((m_wMSVmajor < 0xFF)&&(m_wMSVminor < 0xFF))
     {

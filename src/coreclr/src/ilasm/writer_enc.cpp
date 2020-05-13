@@ -34,6 +34,11 @@ HRESULT Assembler::InitMetaDataForENC(__in __nullterminated WCHAR* wzOrigFileNam
         m_pEmitter->Release();
         m_pEmitter = NULL;
     }
+    if (m_pEmitterPdb != NULL)
+    {
+        m_pEmitterPdb->Release();
+        m_pEmitterPdb = NULL;
+    }
     //WszSetEnvironmentVariable(L"COMP_ENC_OPENSCOPE", wzOrigFileName);
     //hr = m_pDisp->DefineScope(CLSID_CorMetaDataRuntime, 0, IID_IMetaDataEmit2,
     //                    (IUnknown **)&m_pEmitter);
@@ -445,6 +450,11 @@ REPT_STEP
     {
         m_pEmitter->Release();
         m_pEmitter = NULL;
+    }
+    if (m_pEmitterPdb != NULL)
+    {
+        m_pEmitterPdb->Release();
+        m_pEmitterPdb = NULL;
     }
 
     return S_OK;

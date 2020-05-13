@@ -2,3 +2,5 @@
 - add pdb stream support
 - add pdb-metadata object
 - extend the IMetaData emitter to support required additional methods
+
+ppdb_signature = 0x424a5342

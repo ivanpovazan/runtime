@@ -127,6 +127,11 @@ CLiteWeightStgdbRW::~CLiteWeightStgdbRW()
     {
         delete [] m_wszFileName;
     }
+
+    if (m_pdbStream != NULL)
+    {
+        delete m_pdbStream;
+    }
 }
 
 //*****************************************************************************
@@ -508,6 +513,8 @@ HRESULT CLiteWeightStgdbRW::InitNew()
     InitializeLogging();
     LOG((LF_METADATA, LL_INFO10, "Metadata logging enabled\n"));
 
+    m_pdbStream = new PdbStream();
+
     //<TODO>@FUTURE: should probably init the pools here instead of in the MiniMd.</TODO>
     return m_MiniMd.InitNew();
 }
@@ -615,6 +622,8 @@ HRESULT CLiteWeightStgdbRW::GetSaveSize(// S_OK or error.
     cbTotal += cbSize;
     IfFailGo(GetPoolSaveSize(BLOB_POOL_STREAM, MDPoolBlobs, &cbSize));
     cbTotal += cbSize;
+    IfFailGo(GetPoolSaveSize(PDB_STREAM, MDPoolUSBlobs, &cbSize));
+    cbTotal += cbSize;
 
     // Finally, ask the storage system to add fixed overhead it needs for the
     // file format.  The overhead of each stream has already be calculated as
@@ -656,32 +665,48 @@ CLiteWeightStgdbRW::GetPoolSaveSize(
 {
     UINT32  cbSize = 0;     // Size of pool data.
     UINT32  cbStream;       // Size of just the stream.
-    HRESULT hr;
+    HRESULT hr = S_OK;
 
     *pcbSaveSize = 0;
 
-    // If there is no data, then don't bother.
-    if (m_MiniMd.IsPoolEmpty(iPool))
-        return (S_OK);
+    if (wcscmp(PDB_STREAM,szHeap) == 0)
+    {
+        if (!m_pdbStream->IsEmpty())
+        {
+            m_pdbStream->GetByteSize(&cbSize);
+            IfFailGo(AddStreamToList(cbSize, szHeap));
+            IfFailGo(TiggerStorage::GetStreamSaveSize(szHeap, cbSize, &cbSize));
+            *pcbSaveSize = cbSize;
+        }
+        else
+        {
+            goto ErrExit;
+        }
+    }
+    else
+    {
+        // If there is no data, then don't bother.
+        if (m_MiniMd.IsPoolEmpty(iPool))
+            return (S_OK);
 
-    // Ask the pool to size its data.
-    IfFailGo(m_MiniMd.GetPoolSaveSize(iPool, &cbSize));
-    cbStream = cbSize;
+        // Ask the pool to size its data.
+        IfFailGo(m_MiniMd.GetPoolSaveSize(iPool, &cbSize));
+        cbStream = cbSize;
 
-    // Add this item to the save list.
-    IfFailGo(AddStreamToList(cbSize, szHeap));
+        // Add this item to the save list.
+        IfFailGo(AddStreamToList(cbSize, szHeap));
 
 
-    // Ask the storage system to add stream fixed overhead.
-    IfFailGo(TiggerStorage::GetStreamSaveSize(szHeap, cbSize, &cbSize));
+        // Ask the storage system to add stream fixed overhead.
+        IfFailGo(TiggerStorage::GetStreamSaveSize(szHeap, cbSize, &cbSize));
 
-    // Log the size info.
-    LOG((LF_METADATA, LL_INFO10, "Metadata: GetSaveSize for %ls: %d data, %d total.\n",
-        szHeap, cbStream, cbSize));
+        // Log the size info.
+        LOG((LF_METADATA, LL_INFO10, "Metadata: GetSaveSize for %ls: %d data, %d total.\n",
+            szHeap, cbStream, cbSize));
 
-    // Give the size of the pool to the caller's total.
-    *pcbSaveSize = cbSize;
-
+        // Give the size of the pool to the caller's total.
+        *pcbSaveSize = cbSize;
+    }
 ErrExit:
     return hr;
 }
@@ -897,6 +922,7 @@ HRESULT CLiteWeightStgdbRW::SaveToStorage(
     IfFailGo(SavePool(US_BLOB_POOL_STREAM, pStorage, MDPoolUSBlobs));
     IfFailGo(SavePool(GUID_POOL_STREAM, pStorage, MDPoolGuids));
     IfFailGo(SavePool(BLOB_POOL_STREAM, pStorage, MDPoolBlobs));
+    IfFailGo(SavePool(PDB_STREAM, pStorage, NULL));
 
     // Write the header to disk.
     OptionValue ov;
@@ -930,18 +956,34 @@ HRESULT CLiteWeightStgdbRW::SavePool(   // Return code.
     int         iPool)                  // The pool to save.
 {
     IStream     *pIStream=0;            // For writing.
-    HRESULT     hr;
+    HRESULT     hr = S_OK;
 
-    // If there is no data, then don't bother.
-    if (m_MiniMd.IsPoolEmpty(iPool))
-        return (S_OK);
+    if (wcscmp(PDB_STREAM, szName) == 0)
+    {
+        if (!m_pdbStream->IsEmpty())
+        {
+            IfFailGo(pStorage->CreateStream(szName,
+                STGM_DIRECT | STGM_READWRITE | STGM_SHARE_EXCLUSIVE,
+                0, 0, &pIStream));
+            m_pdbStream->SaveToStream(pIStream);
+        }
+        else
+        {
+            goto ErrExit;
+        }
+    }
+    else
+    {
+        // If there is no data, then don't bother.
+        if (m_MiniMd.IsPoolEmpty(iPool))
+            return (S_OK);
 
-    // Create the new stream to hold this table and save it.
-    IfFailGo(pStorage->CreateStream(szName,
+        // Create the new stream to hold this table and save it.
+        IfFailGo(pStorage->CreateStream(szName,
             STGM_DIRECT | STGM_READWRITE | STGM_SHARE_EXCLUSIVE,
             0, 0, &pIStream));
-    IfFailGo(m_MiniMd.SavePoolToStream(iPool, pIStream));
-
+        IfFailGo(m_MiniMd.SavePoolToStream(iPool, pIStream));
+    }
 ErrExit:
     if (pIStream)
         pIStream->Release();
@@ -1236,6 +1278,30 @@ CLiteWeightStgdbRW::SetFileName(
 ErrExit:
     return hr;
 } // CLiteWeightStgdbRW::SetFileName
+
+__checkReturn
+HRESULT CLiteWeightStgdbRW::DefinePdbStream(
+    GUID* mvid,
+    UINT32 timestamp,
+    mdMethodDef entryPoint)
+{
+    HRESULT hr = S_OK;
+
+    //TODO: change setters to return HRESULT and add IfFailGo
+    UINT32 size = sizeof(GUID) + sizeof(UINT32);
+    BYTE* pdbStreamId = new BYTE[size];
+    memcpy_s(pdbStreamId, size, mvid, sizeof(GUID));
+    memcpy_s(pdbStreamId+sizeof(GUID), size, &timestamp, sizeof(UINT32));
+
+    m_pdbStream->SetId(pdbStreamId, size);
+
+    delete[] pdbStreamId;
+
+    m_pdbStream->SetEntryPoint(entryPoint);
+    m_pdbStream->SetupTableReferences(m_MiniMd.m_Tables);
+// ErrExit:
+    return hr;
+} // CLiteWeightStgdbRW::DefinePdbStream
 
 //=======================================================================================
 //

@@ -772,10 +772,10 @@ public:
 
     IMetaDataDispenserEx *m_pDisp;
     IMetaDataEmit2      *m_pEmitter;
+    IMetaDataEmit2      *m_pEmitterPdb;
     ICeeFileGen        *m_pCeeFileGen;
     IMetaDataImport2    *m_pImporter;			// Import interface.
     HCEEFILE m_pCeeFile;
-    HCEEFILE m_pCeeFilePdb;
     HCEESECTION m_pGlobalDataSection;
     HCEESECTION m_pILSection;
     HCEESECTION m_pTLSSection;
@@ -861,7 +861,7 @@ public:
     BOOL EmitClass(Class *pClass);
     HRESULT CreatePEFile(__in __nullterminated WCHAR *pwzOutputFilename);
     HRESULT CreateTLSDirectory();
-    HRESULT CreateDebugDirectory();
+    HRESULT CreateDebugDirectory(GUID* mvid);
     HRESULT InitMetaData();
     Class *FindCreateClass(__in __nullterminated const char *pszFQN);
     BOOL EmitFieldRef(__in_z __in char *pszArg, int opcode);

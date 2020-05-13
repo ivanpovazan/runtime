@@ -26,6 +26,7 @@
 #include "posterror.h"
 #include "stgio.h"
 #include "sstring.h"
+#include "binstr.h"
 
 #include <metamodelrw.h>
 
@@ -43,6 +44,87 @@
 #endif
 
 #ifdef FEATURE_METADATA_EMIT
+
+STDMETHODIMP RegMeta::GetMvid(            // S_OK or error.
+    GUID* mvid) // [IN] If not NULL, the name to set.
+{
+    *mvid = m_Mvid;
+    return S_OK;
+}
+
+STDMETHODIMP RegMeta::DefineDocument(            // S_OK or error.
+    wchar_t* docName, // [IN] If not NULL, the name to set.
+    GUID* hashAlg, // [IN] If not NULL, the name to set.
+    BYTE* hashVal, // [IN] If not NULL, the name to set.
+    GUID* lang // [IN] If not NULL, the name to set.
+)
+{
+    HRESULT     hr = S_OK;
+
+    BEGIN_ENTRYPOINT_NOTHROW;
+
+    LOG((LOGMD, "RegMeta::DefineDocument(%S)\n", MDSTR(docName)));
+
+
+    START_MD_PERF()
+        LOCKWRITE();
+
+    IfFailGo(m_pStgdb->m_MiniMd.PreUpdate());
+
+    ULONG docRecord;
+    DocumentRec* pDocument;
+    IfFailGo(m_pStgdb->m_MiniMd.AddDocumentRecord(&pDocument, &docRecord));
+    IfFailGo(m_pStgdb->m_MiniMd.PutGuid(TBL_Document, DocumentRec::COL_Language, pDocument, *lang));
+
+    const wchar_t* delim = L"\\";
+    wchar_t* pwc = wcstok(docName, delim, 0);
+    UINT32 blobIndex = 0;
+    BinStr* binStr = new BinStr();
+    binStr->appendInt8(*delim);
+    while (pwc != NULL)
+    {
+        m_pStgdb->m_MiniMd.AddBlob(pwc, (ULONG)wcslen(pwc)*2, &blobIndex);
+        CorSigCompressData(blobIndex, binStr->getBuff(sizeof(UINT)));
+        // append blob index to blob;
+        pwc = wcstok(NULL, delim, 0);
+    }
+    IfFailGo(m_pStgdb->m_MiniMd.PutBlob(TBL_Document, DocumentRec::COL_Name, pDocument, binStr->ptr(), binStr->length()));
+    delete binStr;
+
+ErrExit:
+
+    STOP_MD_PERF(DefineDocument);
+    END_ENTRYPOINT_NOTHROW;
+
+    return hr;
+}
+
+STDMETHODIMP RegMeta::DefinePdbStream(            // S_OK or error.
+    GUID* mvid,
+    UINT32 timestamp, // [IN] If not NULL, the name to set.
+    mdMethodDef entryPoint // [IN] If not NULL, the name to set.
+)
+{
+    HRESULT     hr = S_OK;
+
+    BEGIN_ENTRYPOINT_NOTHROW;
+
+    LOG((LOGMD, "RegMeta::DefinePdbStream()\n"));
+
+    START_MD_PERF()
+        LOCKWRITE();
+
+    IfFailGo(m_pStgdb->m_MiniMd.PreUpdate());
+
+    IfFailGo(m_pStgdb->DefinePdbStream(mvid, timestamp, entryPoint));
+
+ErrExit:
+
+    STOP_MD_PERF(DefinePdbStream);
+    END_ENTRYPOINT_NOTHROW;
+
+    return hr;
+}
 
 //*****************************************************************************
 // Set module properties on a scope.

@@ -1035,6 +1035,22 @@ public:
 //*****************************************************************************
 // IMetaDataEmit2 methods
 //*****************************************************************************
+    STDMETHODIMP GetMvid (            // S_OK or error.
+        GUID* mvid); // [IN] If not NULL, the name to set.
+
+    STDMETHODIMP DefineDocument(            // S_OK or error.
+        wchar_t*    docName, // [IN] If not NULL, the name to set.
+        GUID        *hashAlg, // [IN] If not NULL, the name to set.
+        BYTE        *hashVal, // [IN] If not NULL, the name to set.
+        GUID        *lang // [IN] If not NULL, the name to set.
+    );
+
+    STDMETHODIMP DefinePdbStream(            // S_OK or error.
+        GUID* mvid,
+        UINT32 timestamp, // [IN] If not NULL, the name to set.
+        mdMethodDef entryPoint // [IN] If not NULL, the name to set.
+    );
+
     STDMETHODIMP SetModuleProps(            // S_OK or error.
         LPCWSTR     szName);                // [IN] If not NULL, the name to set.
 
@@ -1564,6 +1580,8 @@ public:
 
     HRESULT CreateNewMD();
 
+    HRESULT CreateNewMDNoModule();
+
     HRESULT OpenExistingMD(
         LPCWSTR     szDatabase,             // Name of database.
         void        *pbData,                // Data to open on top of, 0 default.
@@ -2000,7 +2018,7 @@ protected:
 
 private:
     ULONG       m_OpenFlags;                // Open time flags.
-
+    GUID        m_Mvid;
     LONG        m_cRef;                     // Ref count.
     IUnknown    *m_pFreeThreadedMarshaler;   // FreeThreadedMarshaler
 

@@ -21,6 +21,7 @@
 class StgIO;
 
 #include "mdcommon.h"
+#include "pdbstream.h"
 
 #ifdef _PREFAST_
 #pragma warning(push)
@@ -109,6 +110,7 @@ public:
         m_dwPEKind = (DWORD)(-1);
         m_dwDatabaseLFS = 0;
         m_dwDatabaseLFT = 0;
+        m_pdbStream = NULL;
     }
     ~CLiteWeightStgdbRW();
 
@@ -238,6 +240,12 @@ protected:
     // Returns TRUE if wszFileName has valid file name length.
     static BOOL IsValidFileNameLength(const WCHAR * wszFileName);
 
+    __checkReturn
+    HRESULT DefinePdbStream(
+        GUID* mvid,
+        UINT32 timestamp,
+        mdMethodDef entryPoint);
+
     CLiteWeightStgdbRW *m_pNextStgdb;
 
 public:
@@ -249,6 +257,7 @@ private:
     DWORD    m_dwDatabaseLFT;   // Low bytes of the database file's last write time
     DWORD    m_dwDatabaseLFS;   // Low bytes of the database file's size
     StgIO *  m_pStgIO;          // For file i/o.
+    PdbStream* m_pdbStream;
 
 };  // class CLiteWeightStgdbRW
 

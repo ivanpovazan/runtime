@@ -37,6 +37,12 @@ public:
         REFIID      riid,                   // [in] The interface desired.
         IUnknown    **ppIUnk);              // [out] Return interface on success.
 
+    STDMETHODIMP DefinePdbScope(               // Return code.
+        REFCLSID    rclsid,                 // [in] What version to create.
+        DWORD       dwCreateFlags,          // [in] Flags on the create.
+        REFIID      riid,                   // [in] The interface desired.
+        IUnknown** ppIUnk);              // [out] Return interface on success.
+
     STDMETHODIMP OpenScope(                 // Return code.
         LPCWSTR     szScope,                // [in] The scope to open.
         DWORD       dwOpenFlags,            // [in] Open mode flags.

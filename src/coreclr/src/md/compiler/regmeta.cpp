@@ -251,10 +251,10 @@ RegMeta::CreateNewMD()
     // Set up the Module record.
     ULONG      iRecord;
     ModuleRec *pModule;
-    GUID       mvid;
+
     IfFailGo(m_pStgdb->m_MiniMd.AddModuleRecord(&pModule, &iRecord));
-    IfFailGo(CoCreateGuid(&mvid));
-    IfFailGo(m_pStgdb->m_MiniMd.PutGuid(TBL_Module, ModuleRec::COL_Mvid, pModule, mvid));
+    IfFailGo(CoCreateGuid(&m_Mvid));
+    IfFailGo(m_pStgdb->m_MiniMd.PutGuid(TBL_Module, ModuleRec::COL_Mvid, pModule, m_Mvid));
 
     // Add the dummy module typedef which we are using to parent global items.
     TypeDefRec *pRecord;
@@ -276,6 +276,29 @@ RegMeta::CreateNewMD()
 ErrExit:
     return hr;
 } // RegMeta::CreateNewMD
+
+__checkReturn
+HRESULT
+RegMeta::CreateNewMDNoModule()
+{
+    HRESULT hr = NOERROR;
+
+    m_OpenFlags = ofWrite;
+
+    // Allocate our m_pStgdb.
+    _ASSERTE(m_pStgdb == NULL);
+    IfNullGo(m_pStgdb = new (nothrow) CLiteWeightStgdbRW);
+
+    // Initialize the new, empty database.
+
+    // First tell the new database what sort of metadata to create
+    m_pStgdb->m_MiniMd.m_OptionValue.m_MetadataVersion = m_OptionValue.m_MetadataVersion;
+    m_pStgdb->m_MiniMd.m_OptionValue.m_InitialSize = m_OptionValue.m_InitialSize;
+    IfFailGo(m_pStgdb->InitNew());
+    IfFailGo(m_pStgdb->m_MiniMd.SetOption(&m_OptionValue));
+ErrExit:
+    return hr;
+} // RegMeta::CreateNewMDNoModule
 
 #endif //FEATURE_METADATA_EMIT
 

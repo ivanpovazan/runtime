@@ -5602,6 +5602,18 @@ CMiniMdRW::PutToken(    // S_OK or E_UNEXPECTED.
     return hr;
 } // CMiniMdRW::PutToken
 
+HRESULT
+CMiniMdRW::AddBlob(const void* pvData, ULONG cbData, UINT32* index)
+{
+    HRESULT hr = S_OK;
+    UINT32  nBlobIndex = 0;
+    IfFailGo(m_BlobHeap.AddBlob(
+        MetaData::DataBlob((BYTE*)pvData, cbData),
+        index));
+ErrExit:
+    return hr;
+}
+
 //*****************************************************************************
 // Add a blob to the blob pool, and store the offset in the cell.
 //*****************************************************************************

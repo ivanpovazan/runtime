@@ -176,6 +176,75 @@ ErrExit:
 #endif //!FEATURE_METADATA_EMIT
 } // Disp::DefineScope
 
+__checkReturn
+HRESULT
+Disp::DefinePdbScope(               // Return code.
+    REFCLSID    rclsid,                 // [in] What version to create.
+    DWORD       dwCreateFlags,          // [in] Flags on the create.
+    REFIID      riid,                   // [in] The interface desired.
+    IUnknown** ppIUnk)          // [out] Return interface on success.
+{
+#ifdef FEATURE_METADATA_EMIT
+    HRESULT     hr = S_OK;
+    PathString szFileName(PathString::Literal, W("file:"));
+    PathString szFileNameSuffix;
+    BEGIN_ENTRYPOINT_NOTHROW;
+
+    RegMeta* pMeta = 0;
+    OptionValue optionForNewScope = m_OptionValue;
+
+
+    LOG((LF_METADATA, LL_INFO10, "Disp::DefineScope(0x%08x, 0x%08x, 0x%08x, 0x%08x)\n", rclsid, dwCreateFlags, riid, ppIUnk));
+
+    if (dwCreateFlags)
+        IfFailGo(E_INVALIDARG);
+
+    // Figure out what version of the metadata to emit
+    if (rclsid == CLSID_CLR_v1_MetaData)
+    {
+        optionForNewScope.m_MetadataVersion = MDVersion1;
+    }
+    else if (rclsid == CLSID_CLR_v2_MetaData)
+    {
+        optionForNewScope.m_MetadataVersion = MDVersion2;
+    }
+    else
+    {
+        // If it is a version we don't understand, then we cannot continue.
+        IfFailGo(CLDB_E_FILE_OLDVER);
+    }
+
+    // Create a new coclass for this.
+    pMeta = new (nothrow) RegMeta();
+    IfNullGo(pMeta);
+
+    IfFailGo(pMeta->SetOption(&optionForNewScope));
+
+    // Create the MiniMd-style scope.
+    IfFailGo(pMeta->CreateNewMDNoModule());
+
+    // Get the requested interface.
+    IfFailGo(pMeta->QueryInterface(riid, (void**)ppIUnk));
+
+    // Add the new RegMeta to the cache.
+    IfFailGo(pMeta->AddToCache());
+
+    LOG((LOGMD, "{%08x} Created new emit scope\n", pMeta));
+
+ErrExit:
+    if (FAILED(hr))
+    {
+        if (pMeta != NULL)
+            delete pMeta;
+        *ppIUnk = NULL;
+    }
+    END_ENTRYPOINT_NOTHROW;
+
+    return hr;
+#else //!FEATURE_METADATA_EMIT
+    return E_NOTIMPL;
+#endif //!FEATURE_METADATA_EMIT
+} // Disp::DefineScope
 
 //*****************************************************************************
 // Deliver scope to caller of OpenScope or OpenScopeOnMemory (this may

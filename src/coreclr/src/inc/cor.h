@@ -230,6 +230,12 @@ DECLARE_INTERFACE_(IMetaDataDispenser, IUnknown)
         REFIID      riid,                   // [in] The interface desired.
         IUnknown    **ppIUnk) PURE;         // [out] Return interface on success.
 
+    STDMETHOD(DefinePdbScope)(            // Return code.
+        REFCLSID    rclsid,                 // [in] What version to create.
+        DWORD       dwCreateFlags,          // [in] Flags on the create.
+        REFIID      riid,                   // [in] The interface desired.
+        IUnknown    **ppIUnk) PURE;         // [out] Return interface on success.
+
     STDMETHOD(OpenScope)(                   // Return code.
         LPCWSTR     szScope,                // [in] The scope to open.
         DWORD       dwOpenFlags,            // [in] Open mode flags.
@@ -573,6 +579,20 @@ EXTERN_GUID(IID_IMetaDataEmit2, 0xf5dd9950, 0xf693, 0x42e6, 0x83, 0xe, 0x7b, 0x8
 #define INTERFACE IMetaDataEmit2
 DECLARE_INTERFACE_(IMetaDataEmit2, IMetaDataEmit)
 {
+    STDMETHOD(GetMvid)(            // S_OK or error.
+        GUID * mvid) PURE; // [IN] If not NULL, the name to set.
+
+    STDMETHOD(DefineDocument)(            // S_OK or error.
+        wchar_t* docName, // [IN] If not NULL, the name to set.
+        GUID * hashAlg, // [IN] If not NULL, the name to set.
+        BYTE * hashVal, // [IN] If not NULL, the name to set.
+        GUID * lang) PURE; // [IN] If not NULL, the name to set.
+
+    STDMETHOD(DefinePdbStream)(            // S_OK or error.
+        GUID * mvid,
+        UINT32 timestamp, // [IN] If not NULL, the name to set.
+        mdMethodDef entryPoint) PURE; // [IN] If not NULL, the name to set.
+
     STDMETHOD(DefineMethodSpec)(
         mdToken     tkParent,               // [IN] MethodDef or MemberRef
         PCCOR_SIGNATURE pvSigBlob,          // [IN] point to a blob value of COM+ signature

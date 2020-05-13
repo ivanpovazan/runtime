@@ -760,14 +760,6 @@ extern "C" int _cdecl wmain(int argc, __in WCHAR **argv)
                                     exitval = 1;
                                     pParser->msg("Failed to write output file, error code=0x%08X\n",hr);
                                 }
-                                if (pAsm->m_fGeneratePDB)
-                                {
-                                    if (FAILED(hr = pAsm->m_pCeeFileGen->GenerateCeeFile(pAsm->m_pCeeFilePdb)))
-                                    {
-                                        exitval = 1;
-                                        pParser->msg("Failed to write output pdb file, error code=0x%08X\n", hr);
-                                    }
-                                }
                                 if(bClock) cw.cEnd = GetTickCount();
 #define ENC_ENABLED
                                 if(exitval==0)
