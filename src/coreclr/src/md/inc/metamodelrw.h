@@ -417,6 +417,7 @@ public:
 
     /* Portable PDB tables */
     AddTblRecord(Document)
+    AddTblRecord(MethodDebugInformation)
     // TODO: rest of the tables
 
     // Specialized AddXxxToYyy() functions.

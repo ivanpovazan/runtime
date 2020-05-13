@@ -422,4 +422,11 @@
     SCHEMA_ITEM_BLOB(Document, Hash)
     SCHEMA_ITEM_GUID(Document, Language)
     SCHEMA_TABLE_END(Document)
+
+    //-------------------------------------------------------------------------
+    //MethodDebugInformation
+    SCHEMA_TABLE_START(MethodDebugInformation)
+    SCHEMA_ITEM_RID(MethodDebugInformation, Document, Document)
+    SCHEMA_ITEM_BLOB(MethodDebugInformation, SequencePoints)
+    SCHEMA_TABLE_END(MethodDebugInformation)
 // eof ------------------------------------------------------------------------

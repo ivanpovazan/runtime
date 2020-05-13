@@ -154,7 +154,7 @@ g_TblSizeInfo[MDSizeIndex_Count][TBL_COUNT] =
        0,           // Dummy3
        /* -- Actual portable PDB tables */
        0,           // Document
-       // 0,           // MethodDebugInformation
+       0,           // MethodDebugInformation
        // 0,           // LocalScope
        // 0,           // LocalVariable
        // 0,           // LocalConstant
@@ -216,7 +216,7 @@ g_TblSizeInfo[MDSizeIndex_Count][TBL_COUNT] =
        0,       // Dummy3
        /* -- Actual portable PDB tables */
        0,       // Document
-       // 0,       // MethodDebugInformation
+       0,       // MethodDebugInformation
        // 0,       // LocalScope
        // 0,       // LocalVariable
        // 0,       // LocalConstant
@@ -287,7 +287,7 @@ const TblIndex g_TblIndex[TBL_COUNT] =
     {(ULONG) -1,        (ULONG) -1,     (ULONG)-1},         // Dummy2
     {(ULONG) -1,        (ULONG) -1,     (ULONG)-1},         // Dummy3
     {(ULONG) -1,        (ULONG) -1,     mdtDocument},       // Document
-    // {(ULONG) -1,        (ULONG) -1,     mdtMethodDebugInformation},// MethodDebugInformation
+    {(ULONG) -1,        (ULONG) -1,     mdtMethodDebugInformation},// MethodDebugInformation
     // {(ULONG) -1,        (ULONG) -1,     mdtLocalScope},     // LocalScope
     // {(ULONG) -1,        (ULONG) -1,     mdtLocalVariable},  // LocalVariable
     // {(ULONG) -1,        (ULONG) -1,     mdtLocalConstant},  // LocalConstant

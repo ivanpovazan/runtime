@@ -56,3 +56,4 @@ static const BYTE s_Dummy2Col[];
 static const BYTE s_Dummy3Col[];
 // -- Actual portable PDB tables descriptors
 static const BYTE s_DocumentCol[];
+static const BYTE s_MethodDebugInformationCol[];

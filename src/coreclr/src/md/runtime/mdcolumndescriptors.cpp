@@ -174,6 +174,10 @@ const BYTE CMiniMdBase::s_DocumentCol[] = { 2,
   103,0,2, 102,2,2, 103,4,2, 102,6,2,
   103,0,4, 102,4,2, 103,6,2, 102,8,4,
 };
+const BYTE CMiniMdBase::s_MethodDebugInformationCol[] = { 2,
+  48,0,2, 103,2,2,
+  48,0,2, 103,4,2,
+};
 
 const BYTE* const CMiniMdBase::s_TableColumnDescriptors[] = {
 s_ModuleCol,
@@ -227,5 +231,6 @@ s_Dummy1Col,
 s_Dummy2Col,
 s_Dummy3Col,
 // -- Actual portable PDB tables descriptors
-s_DocumentCol
+s_DocumentCol,
+s_MethodDebugInformationCol
 };

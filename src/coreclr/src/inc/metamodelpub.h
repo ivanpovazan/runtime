@@ -1547,7 +1547,17 @@ public:
     };
 };
 
-// MiniMdTable(MethodDebugInformation) \
+class MethodDebugInformationRec
+{
+public:
+    enum {
+        COL_Document,
+        COL_SequencePoints,
+        COL_COUNT,
+        COL_KEY
+    };
+};
+
 // MiniMdTable(LocalScope) \
 // MiniMdTable(LocalVariable) \
 // MiniMdTable(LocalConstant) \
@@ -1612,7 +1622,7 @@ public:
     MiniMdTable(Dummy3)                             /* 0x2F */ \
     /* -- Actual portable PDB tables */                        \
     MiniMdTable(Document)                           /* 0x30 */ \
-    // MiniMdTable(MethodDebugInformation)             /* 0x31 */ \
+    MiniMdTable(MethodDebugInformation)             /* 0x31 */ \
     // MiniMdTable(LocalScope)                         /* 0x32 */ \
     // MiniMdTable(LocalVariable)                      /* 0x33 */ \
     // MiniMdTable(LocalConstant)                      /* 0x34 */ \
@@ -1626,7 +1636,7 @@ enum {
     MiniMdTables()
     TBL_COUNT,                                      // Highest table.
     TBL_COUNT_V1 = TBL_NestedClass + 1,             // Highest table in v1.0 database
-    TBL_COUNT_V2 = TBL_Document + 1                 // Highest in v2.0 database // TODO: adjust to implemented portable pdb tables
+    TBL_COUNT_V2 = TBL_MethodDebugInformation + 1                 // Highest in v2.0 database // TODO: adjust to implemented portable pdb tables
 };
 #undef MiniMdTable
 

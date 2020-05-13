@@ -473,7 +473,8 @@ CMiniMdBase::CMiniMdBase()
     _ASSERTE((TypeFromToken(mdtMethodSpec) >> 24)       == TBL_MethodSpec);
     _ASSERTE((TypeFromToken(mdtGenericParamConstraint) >> 24) == TBL_GenericParamConstraint);
     /* Portable PDB tables */
-    _ASSERTE((TypeFromToken(mdtDocument) >> 24) == TBL_Document);
+    _ASSERTE((TypeFromToken(mdtDocument) >> 24)         == TBL_Document);
+    _ASSERTE((TypeFromToken(mdtMethodDebugInformation) >> 24) == TBL_MethodDebugInformation);
     // TODO: rest of the tables
 } // CMiniMdBase::CMiniMdBase
 
