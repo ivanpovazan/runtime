@@ -1565,7 +1565,6 @@ HRESULT Assembler::CreatePEFile(__in __nullterminated WCHAR *pwzOutputFilename)
     
 
     if (m_fGeneratePDB) {
-        if (FAILED(hr = m_pEmitterPdb->DefineDocument(m_wzSourceFileName, &m_guidLang, new BYTE[2], &m_guidLang))) goto exit;
         DWORD fileTimeStamp;
         if (FAILED(hr = m_pCeeFileGen->GetFileTimeStamp(m_pCeeFile, &fileTimeStamp))) goto exit;
         mdMethodDef entryPoint;

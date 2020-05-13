@@ -1039,11 +1039,17 @@ public:
         GUID* mvid); // [IN] If not NULL, the name to set.
 
     STDMETHODIMP DefineDocument(            // S_OK or error.
-        wchar_t*    docName, // [IN] If not NULL, the name to set.
+        char*    docName, // [IN] If not NULL, the name to set.
         GUID        *hashAlg, // [IN] If not NULL, the name to set.
         BYTE        *hashVal, // [IN] If not NULL, the name to set.
-        GUID        *lang // [IN] If not NULL, the name to set.
+        GUID        *lang, // [IN] If not NULL, the name to set.
+        mdDocument  *docMdToken
     );
+
+    STDMETHODIMP DefineSequencePoints(            // S_OK or error.
+        ULONG docRid, // [IN] If not NULL, the name to set.
+        BYTE* sequencePtsBlob,
+        ULONG sequencePtsBlobSize); // [IN] If not NULL, the name to set.
 
     STDMETHODIMP DefinePdbStream(            // S_OK or error.
         GUID* mvid,

@@ -583,10 +583,16 @@ DECLARE_INTERFACE_(IMetaDataEmit2, IMetaDataEmit)
         GUID * mvid) PURE; // [IN] If not NULL, the name to set.
 
     STDMETHOD(DefineDocument)(            // S_OK or error.
-        wchar_t* docName, // [IN] If not NULL, the name to set.
+        char* docName, // [IN] If not NULL, the name to set.
         GUID * hashAlg, // [IN] If not NULL, the name to set.
         BYTE * hashVal, // [IN] If not NULL, the name to set.
-        GUID * lang) PURE; // [IN] If not NULL, the name to set.
+        GUID * lang,
+        mdDocument * docMdToken) PURE; // [IN] If not NULL, the name to set.
+
+    STDMETHOD(DefineSequencePoints)(            // S_OK or error.
+        ULONG docRid, // [IN] If not NULL, the name to set.
+        BYTE * sequencePtsBlob,
+        ULONG sequencePtsBlobSize) PURE; // [IN] If not NULL, the name to set.    
 
     STDMETHOD(DefinePdbStream)(            // S_OK or error.
         GUID * mvid,

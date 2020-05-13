@@ -1402,7 +1402,7 @@ unsigned Assembler::OpcodeLen(Instr* instr)
 /**************************************************************************/
 void Assembler::EmitOpcode(Instr* instr)
 {
-    if(m_fGeneratePDB && (m_pSymWriter != NULL) &&
+    if(m_fGeneratePDB &&
        ((instr->linenum != m_ulLastDebugLine)
         ||(instr->column != m_ulLastDebugColumn)
         ||(instr->linenum_end != m_ulLastDebugLineEnd)

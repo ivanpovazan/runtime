@@ -31,6 +31,7 @@ Assembler::Assembler()
     m_pEmitter = NULL;
     m_pEmitterPdb = NULL;
     m_pImporter = NULL;
+    m_docMdToken = mdDocumentNil;
 
     m_fCPlusPlus = FALSE;
     m_fWindowsCE = FALSE;
@@ -476,6 +477,7 @@ BOOL Assembler::AddMethod(Method *pMethod)
 
 BOOL Assembler::EmitMethodBody(Method* pMethod, BinStr* pbsOut)
 {
+    HRESULT hr = S_OK;
     if(pMethod)
     {
         BinStr* pbsBody = pMethod->m_pbsBody;
@@ -491,7 +493,6 @@ BOOL Assembler::EmitMethodBody(Method* pMethod, BinStr* pbsOut)
                 VarDescr* pVD;
                 BinStr*   pbsSig = new BinStr();
                 unsigned cnt;
-                HRESULT hr;
                 DWORD   cSig;
                 const COR_SIGNATURE* mySig;
 
@@ -522,58 +523,101 @@ BOOL Assembler::EmitMethodBody(Method* pMethod, BinStr* pbsOut)
                 pFH->SetLocalVarSigTok(pMethod->m_LocalsSig);
             }
             //--------------------------------------------------------------------------------
-            if(m_fGeneratePDB && (m_pSymWriter != NULL))
+            if(m_fGeneratePDB)
             {
-                m_pSymWriter->OpenMethod(pMethod->m_Tok);
-                ULONG N = pMethod->m_LinePCList.COUNT();
-                if(pMethod->m_fEntryPoint) m_pSymWriter->SetUserEntryPoint(pMethod->m_Tok);
-                if(N)
-                {
-                    LinePC  *pLPC;
-                    ULONG32  *offsets=new ULONG32[N], *lines = new ULONG32[N], *columns = new ULONG32[N];
-                    ULONG32  *endlines=new ULONG32[N], *endcolumns=new ULONG32[N];
-                    if(offsets && lines && columns && endlines && endcolumns)
-                    {
-                        DocWriter* pDW;
-                        unsigned j=0;
-                        while((pDW = m_DocWriterList.PEEK(j++)))
-                        {
-                            if((m_pSymDocument = pDW->pWriter))
-                            {
-                                int i, n;
-                                for(i=0, n=0; (pLPC = pMethod->m_LinePCList.PEEK(i)); i++)
-                                {
-                                    if(pLPC->pWriter == m_pSymDocument)
-                                    {
-                                        offsets[n] = pLPC->PC;
-                                        lines[n] = pLPC->Line;
-                                        columns[n] = pLPC->Column;
-                                        endlines[n] = pLPC->LineEnd;
-                                        endcolumns[n] = pLPC->ColumnEnd;
-                                        n++;
-                                    }
-                                }
-                                if(n) m_pSymWriter->DefineSequencePoints(m_pSymDocument,n,
-                                                                   offsets,lines,columns,endlines,endcolumns);
-                            } // end if(pSymDocument)
-                        } // end while(pDW = next doc.writer)
-                        pMethod->m_LinePCList.RESET(true);
-                    }
-                    else report->error("\nOutOfMemory!\n");
-                    delete [] offsets;
-                    delete [] lines;
-                    delete [] columns;
-                    delete [] endlines;
-                    delete [] endcolumns;
-                }//enf if(N)
-                HRESULT hrr;
-                if(pMethod->m_ulLines[1])
-                    hrr = m_pSymWriter->SetMethodSourceRange(m_pSymDocument,pMethod->m_ulLines[0], pMethod->m_ulColumns[0],
-                                                       m_pSymDocument,pMethod->m_ulLines[1], pMethod->m_ulColumns[1]);
-                EmitScope(&(pMethod->m_MainScope)); // recursively emits all nested scopes
+                // TODO: here we assume there is always only one source file - document (missing hash algorithm and hash value)
+                if (m_docMdToken == mdDocumentNil)
+                    hr = m_pEmitterPdb->DefineDocument(m_szSourceFileName, &m_guidLang, new BYTE[2], &m_guidLang, &m_docMdToken);
+                _ASSERTE(SUCCEEDED(hr));
 
-                m_pSymWriter->CloseMethod();
-            } // end if(fIncludeDebugInfo)
+                ULONG cnt = 0;
+                BinStr* blob = new BinStr();
+                ULONG documentRid = RidFromToken(m_docMdToken);
+
+                // Blob ::= header SequencePointRecord (SequencePointRecord | document-record)*
+                // SequencePointRecord :: = sequence-point-record | hidden-sequence-point-record
+
+                // header ::= {LocalSignature, InitialDocument}
+                // LocalSignature
+                cnt = CorSigCompressData(0, blob->getBuff(sizeof(ULONG) + 1));
+                blob->remove((sizeof(ULONG) + 1) - cnt);
+                // InitialDocument - SKIP THIS
+                // cnt = CorSigCompressData(documentRid, blob->getBuff(sizeof(ULONG) + 1));
+                // blob->remove((sizeof(ULONG) + 1) - cnt);
+
+                // sequence-point-record ::= deltas
+                ULONG offset = 0;
+                ULONG deltaLines = 0;
+                INT32 deltaColumns = 0;
+                INT32 deltaStartLine = 0;
+                INT32 deltaStartColumn = 0;
+                LinePC* currSeqPoint = NULL;
+                LinePC* prevSeqPoint = NULL;
+
+                for (UINT32 i = 0; i < pMethod->m_LinePCList.COUNT(); i++)
+                {
+                    currSeqPoint = pMethod->m_LinePCList.PEEK(i);
+                    //offset
+                    if (i == 0)
+                        offset = currSeqPoint->PC;
+                    else
+                        offset = currSeqPoint->PC - prevSeqPoint->PC;
+                    cnt = CorSigCompressData(offset, blob->getBuff(sizeof(ULONG) + 1));
+                    blob->remove((sizeof(ULONG) + 1) - cnt);
+
+                    //delta lines
+                    deltaLines = currSeqPoint->LineEnd - currSeqPoint->Line;
+                    cnt = CorSigCompressData(deltaLines, blob->getBuff(sizeof(ULONG) + 1));
+                    blob->remove((sizeof(ULONG) + 1) - cnt);
+
+                    //delta columns
+                    deltaColumns = (currSeqPoint->ColumnEnd == 0) ? currSeqPoint->Column : (currSeqPoint->ColumnEnd - currSeqPoint->Column);
+                    if (deltaLines == 0)
+                    {
+                        cnt = CorSigCompressData(deltaColumns, blob->getBuff(sizeof(ULONG) + 1));
+                        blob->remove((sizeof(ULONG) + 1) - cnt);
+                    }
+                    else
+                    {
+                        cnt = CorSigCompressSignedInt(deltaColumns, blob->getBuff(sizeof(int) + 1));
+                        blob->remove((sizeof(int) + 1) - cnt);
+                    }
+
+                    //delta start line
+                    if (i == 0)
+                    {
+                        deltaStartLine = currSeqPoint->Line;
+                        cnt = CorSigCompressData(deltaStartLine, blob->getBuff(sizeof(ULONG) + 1));
+                        blob->remove((sizeof(ULONG) + 1) - cnt);
+                    }
+                    else
+                    {
+                        deltaStartLine = currSeqPoint->Line - prevSeqPoint->Line;
+                        cnt = CorSigCompressSignedInt(deltaStartLine, blob->getBuff(sizeof(int) + 1));
+                        blob->remove((sizeof(int) + 1) - cnt);
+                    }
+
+                    //delta start column
+                    if (i == 0)
+                    {
+                        deltaStartColumn = currSeqPoint->Column;
+                        cnt = CorSigCompressData(deltaStartColumn, blob->getBuff(sizeof(ULONG) + 1));
+                        blob->remove((sizeof(ULONG) + 1) - cnt);
+                    }
+                    else
+                    {
+                        deltaStartColumn = currSeqPoint->Column - prevSeqPoint->Column;
+                        cnt = CorSigCompressSignedInt(deltaStartColumn, blob->getBuff(sizeof(int) + 1));
+                        blob->remove((sizeof(int) + 1) - cnt);
+                    }
+                    prevSeqPoint = currSeqPoint;
+                }
+
+                hr = m_pEmitterPdb->DefineSequencePoints(documentRid, blob->ptr(), blob->length());
+                _ASSERTE(SUCCEEDED(hr));
+
+                delete blob;
+            } // end if(m_fGeneratePDB)
             //-----------------------------------------------------
 
             if(m_fFoldCode)

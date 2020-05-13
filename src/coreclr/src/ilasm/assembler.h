@@ -773,6 +773,7 @@ public:
     IMetaDataDispenserEx *m_pDisp;
     IMetaDataEmit2      *m_pEmitter;
     IMetaDataEmit2      *m_pEmitterPdb;
+    mdDocument          m_docMdToken;
     ICeeFileGen        *m_pCeeFileGen;
     IMetaDataImport2    *m_pImporter;			// Import interface.
     HCEEFILE m_pCeeFile;

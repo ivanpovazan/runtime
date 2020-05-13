@@ -285,7 +285,7 @@ Instr* SetupInstr(unsigned short opcode)
     if((pVal = PASM->GetInstr()))
     {
         pVal->opcode = opcode;
-        if((pVal->pWriter = PASM->m_pSymDocument)!=NULL)
+        if (PASM->m_fGeneratePDB)
         {
             if(PENV->bExternSource)
             {

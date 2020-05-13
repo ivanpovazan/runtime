@@ -53,17 +53,18 @@ STDMETHODIMP RegMeta::GetMvid(            // S_OK or error.
 }
 
 STDMETHODIMP RegMeta::DefineDocument(            // S_OK or error.
-    wchar_t* docName, // [IN] If not NULL, the name to set.
+    char* docName, // [IN] If not NULL, the name to set.
     GUID* hashAlg, // [IN] If not NULL, the name to set.
     BYTE* hashVal, // [IN] If not NULL, the name to set.
-    GUID* lang // [IN] If not NULL, the name to set.
+    GUID* lang, // [IN] If not NULL, the name to set.
+    mdDocument * docMdToken
 )
 {
     HRESULT     hr = S_OK;
 
     BEGIN_ENTRYPOINT_NOTHROW;
 
-    LOG((LOGMD, "RegMeta::DefineDocument(%S)\n", MDSTR(docName)));
+    LOG((LOGMD, "RegMeta::DefineDocument(%S)\n", MDSTRA(docName)));
 
 
     START_MD_PERF()
@@ -76,24 +77,59 @@ STDMETHODIMP RegMeta::DefineDocument(            // S_OK or error.
     IfFailGo(m_pStgdb->m_MiniMd.AddDocumentRecord(&pDocument, &docRecord));
     IfFailGo(m_pStgdb->m_MiniMd.PutGuid(TBL_Document, DocumentRec::COL_Language, pDocument, *lang));
 
-    const wchar_t* delim = L"\\";
-    wchar_t* pwc = wcstok(docName, delim, 0);
+
+
+    const char* delim = "\\";
+    char* stringToken = strtok(docName, delim);
     UINT32 blobIndex = 0;
     BinStr* binStr = new BinStr();
     binStr->appendInt8(*delim);
-    while (pwc != NULL)
+    while (stringToken != NULL)
     {
-        m_pStgdb->m_MiniMd.AddBlob(pwc, (ULONG)wcslen(pwc)*2, &blobIndex);
-        CorSigCompressData(blobIndex, binStr->getBuff(sizeof(UINT)));
+        m_pStgdb->m_MiniMd.AddBlob(stringToken, (ULONG)strlen(stringToken), &blobIndex);
+        UINT32 cnt = CorSigCompressData(blobIndex, binStr->getBuff(sizeof(UINT)+1));
+        binStr->remove(sizeof(UINT) + 1 - cnt);
         // append blob index to blob;
-        pwc = wcstok(NULL, delim, 0);
+        stringToken = strtok(NULL, delim);
     }
     IfFailGo(m_pStgdb->m_MiniMd.PutBlob(TBL_Document, DocumentRec::COL_Name, pDocument, binStr->ptr(), binStr->length()));
     delete binStr;
 
+    *docMdToken = TokenFromRid(docRecord, mdtDocument);
+
 ErrExit:
 
     STOP_MD_PERF(DefineDocument);
+    END_ENTRYPOINT_NOTHROW;
+
+    return hr;
+}
+
+STDMETHODIMP RegMeta::DefineSequencePoints(            // S_OK or error.
+    ULONG docRid, // [IN] If not NULL, the name to set.
+    BYTE* sequencePtsBlob,
+    ULONG sequencePtsBlobSize)
+{
+    HRESULT     hr = S_OK;
+
+    BEGIN_ENTRYPOINT_NOTHROW;
+
+    LOG((LOGMD, "RegMeta::DefineSequencePoints()\n"));
+
+    START_MD_PERF()
+        LOCKWRITE();
+
+    IfFailGo(m_pStgdb->m_MiniMd.PreUpdate());
+
+    ULONG methodDebugInformationRecord;
+    MethodDebugInformationRec* pMethodDebugInformation;
+    IfFailGo(m_pStgdb->m_MiniMd.AddMethodDebugInformationRecord(&pMethodDebugInformation, &methodDebugInformationRecord));
+    IfFailGo(m_pStgdb->m_MiniMd.PutCol(TBL_MethodDebugInformation, MethodDebugInformationRec::COL_Document, pMethodDebugInformation, docRid));
+    IfFailGo(m_pStgdb->m_MiniMd.PutBlob(TBL_MethodDebugInformation, MethodDebugInformationRec::COL_SequencePoints, pMethodDebugInformation, sequencePtsBlob, sequencePtsBlobSize));
+
+ErrExit:
+
+    STOP_MD_PERF(DefineSequencePoints);
     END_ENTRYPOINT_NOTHROW;
 
     return hr;
