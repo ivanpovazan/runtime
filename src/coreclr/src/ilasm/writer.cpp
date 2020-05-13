@@ -232,19 +232,20 @@ HRESULT Assembler::CreateDebugDirectory(GUID* mvid)
     DWORD   PointerToRawData;
     */
 
-    char dbgPath[15] = "D://mypath.txt";
-    UINT len = 4 + sizeof(GUID) + 1 + 15;
+    DWORD rsds = 0x53445352;
+    DWORD pdbAge = 0x1;
+    char dbgPath[71] = "d:/temp_dir/deleteme/TestCecil/MyLib/bin/Debug/netcoreapp2.1/MyLib.pdb";
+    DWORD len = sizeof(rsds) + sizeof(*mvid) + sizeof(pdbAge) + (DWORD)strlen(dbgPath) + 1;
     BYTE* dbgDirData = new BYTE[len];
 
-    DWORD rsds = 0x53445352;
-    UINT offset = 0;
-    _memccpy(dbgDirData + offset, &rsds, 0, sizeof(rsds));
+    DWORD offset = 0;
+    memcpy_s(dbgDirData + offset, len, &rsds, sizeof(rsds));
     offset += sizeof(rsds);
-    _memccpy(dbgDirData + offset, mvid, 0, sizeof(GUID));
+    memcpy_s(dbgDirData + offset, len, mvid, sizeof(*mvid));
     offset += sizeof(GUID);
-    memset(dbgDirData + offset, 1, sizeof(UINT));
-    offset += sizeof(UINT);
-    _memccpy(dbgDirData + offset, &dbgPath, 0, sizeof(dbgPath));
+    memcpy_s(dbgDirData + offset, len, &pdbAge, sizeof(pdbAge));
+    offset += sizeof(pdbAge);
+    memcpy_s(dbgDirData + offset, len, dbgPath, strlen(dbgPath)+1);
 
     debugDirIDD.Characteristics = 0;
     // debugDirIDD.TimeDateStamp
@@ -1562,7 +1563,7 @@ HRESULT Assembler::CreatePEFile(__in __nullterminated WCHAR *pwzOutputFilename)
     }
 
     if(bClock) bClock->cFilegenBegin = GetTickCount();
-    
+
 
     if (m_fGeneratePDB) {
         DWORD fileTimeStamp;
