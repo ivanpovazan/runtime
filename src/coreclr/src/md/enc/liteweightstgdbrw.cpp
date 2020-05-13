@@ -1047,7 +1047,10 @@ HRESULT CLiteWeightStgdbRW::Save(
     // Init the storage object on the i/o system.
     OptionValue ov;
     IfFailGo(m_MiniMd.GetOption(&ov));
-    IfFailGo(pStorage->Init(pStgIO, ov.m_RuntimeVersion));
+    if (m_pdbStream->IsEmpty())
+        IfFailGo(pStorage->Init(pStgIO, ov.m_RuntimeVersion));
+    else
+        IfFailGo(pStorage->Init(pStgIO, (LPSTR)"PDB v1.0"));
 
     // Save the data.
     IfFailGo(SaveToStorage(pStorage));
