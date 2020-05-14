@@ -86,7 +86,8 @@ STDMETHODIMP RegMeta::DefineDocument(            // S_OK or error.
     binStr->appendInt8(*delim);
     while (stringToken != NULL)
     {
-        m_pStgdb->m_MiniMd.AddBlob(stringToken, (ULONG)strlen(stringToken), &blobIndex);
+        IfFailGo(m_pStgdb->m_MiniMd.m_BlobHeap.AddBlob(MetaData::DataBlob((BYTE*)stringToken, (ULONG)strlen(stringToken)), &blobIndex));
+
         UINT32 cnt = CorSigCompressData(blobIndex, binStr->getBuff(sizeof(UINT)+1));
         binStr->remove(sizeof(UINT) + 1 - cnt);
         // append blob index to blob;

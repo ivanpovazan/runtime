@@ -341,9 +341,6 @@ public:
     HRESULT PutToken(ULONG ixTbl, ULONG ixCol, void *pRecord, mdToken tk);
     __checkReturn
     HRESULT PutBlob(ULONG ixTbl, ULONG ixCol, void *pRecord, const void *pvData, ULONG cbData);
-
-    HRESULT AddBlob(const void* pvData, ULONG cbData, UINT32* index);
-
     __checkReturn
     HRESULT PutUserString(MetaData::DataBlob data, UINT32 *pnIndex)
     { return m_UserStringHeap.AddBlob(data, pnIndex); }
