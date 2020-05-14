@@ -202,7 +202,7 @@ HRESULT Assembler::CreateTLSDirectory() {
     return(hr);
 }
 
-HRESULT Assembler::CreateDebugDirectory(GUID* mvid)
+HRESULT Assembler::CreateDebugDirectory(GUID* mvid, DWORD fileTimeStamp)
 {
     HRESULT hr = S_OK;
     HCEESECTION sec = m_pILSection;
@@ -210,31 +210,20 @@ HRESULT Assembler::CreateDebugDirectory(GUID* mvid)
     ULONG deOffset;
 
     // Only emit this if we're also emitting debug info.
-    //if (!(m_fGeneratePDB && m_pSymWriter))
-    //    return S_OK;
+    if (!m_fGeneratePDB)
+        return S_OK;
 
     IMAGE_DEBUG_DIRECTORY  debugDirIDD;
     struct Param
     {
-    DWORD                  debugDirDataSize;
-        BYTE              *debugDirData;
+        DWORD   debugDirDataSize;
+        BYTE    *debugDirData;
     } param;
     param.debugDirData = NULL;
 
-    /*
-    DWORD   Characteristics;
-    DWORD   TimeDateStamp;
-    WORD    MajorVersion;
-    WORD    MinorVersion;
-    DWORD   Type;
-    DWORD   SizeOfData;
-    DWORD   AddressOfRawData;
-    DWORD   PointerToRawData;
-    */
-
     DWORD rsds = 0x53445352;
     DWORD pdbAge = 0x1;
-    char dbgPath[71] = "d:/temp_dir/deleteme/TestCecil/MyLib/bin/Debug/netcoreapp2.1/MyLib.pdb";
+    char dbgPath[71] = "d:/temp_dir/deleteme/TestCecil/MyLib/bin/Debug/netcoreapp2.1/MyLib.pdb"; // TODO: fixme
     DWORD len = sizeof(rsds) + sizeof(*mvid) + sizeof(pdbAge) + (DWORD)strlen(dbgPath) + 1;
     BYTE* dbgDirData = new BYTE[len];
 
@@ -248,7 +237,7 @@ HRESULT Assembler::CreateDebugDirectory(GUID* mvid)
     memcpy_s(dbgDirData + offset, len, dbgPath, strlen(dbgPath)+1);
 
     debugDirIDD.Characteristics = 0;
-    // debugDirIDD.TimeDateStamp
+    debugDirIDD.TimeDateStamp = VAL32(fileTimeStamp);
     debugDirIDD.MajorVersion = 256;
     debugDirIDD.MinorVersion = 20557;
     debugDirIDD.Type = 2;
@@ -256,15 +245,7 @@ HRESULT Assembler::CreateDebugDirectory(GUID* mvid)
     debugDirIDD.AddressOfRawData = 0; // somewhere in text
     debugDirIDD.PointerToRawData = 0; // somewhere relative
 
-    // Get the debug info from the symbol writer.
-    //if (FAILED(hr=m_pSymWriter->GetDebugInfo(NULL, 0, &param.debugDirDataSize, NULL)))
-    //    return hr;
     param.debugDirDataSize = len;
-
-    // Will there even be any?
-    if (param.debugDirDataSize == 0)
-        return S_OK;
-
     // Make some room for the data.
     PAL_TRY(Param *, pParam, &param) {
         pParam->debugDirData = new BYTE[pParam->debugDirDataSize];
@@ -272,25 +253,10 @@ HRESULT Assembler::CreateDebugDirectory(GUID* mvid)
         hr = E_FAIL;
     } PAL_ENDTRY
 
-        param.debugDirData = dbgDirData;
+    param.debugDirData = dbgDirData;
 
-    if(FAILED(hr)) return hr;
-    // Actually get the data now.
-    /*if (FAILED(hr = m_pSymWriter->GetDebugInfo(&debugDirIDD,
-                                               param.debugDirDataSize,
-                                               NULL,
-                                               param.debugDirData)))
-        goto ErrExit;*/
-
-    // Grab the timestamp of the PE file.
-    DWORD fileTimeStamp;
-
-    if (FAILED(hr = m_pCeeFileGen->GetFileTimeStamp(m_pCeeFile,
-                                                    &fileTimeStamp)))
-        goto ErrExit;
-
-    // Fill in the directory entry.
-    debugDirIDD.TimeDateStamp = VAL32(fileTimeStamp);
+    if(FAILED(hr))
+        return hr;
 
     // Grab memory in the section for our stuff.
     // Note that UpdateResource doesn't work correctly if the debug directory is
@@ -345,16 +311,14 @@ HRESULT Assembler::CreateDebugDirectory(GUID* mvid)
            param.debugDirDataSize);
 
     if (param.debugDirData)
-    {
         delete [] param.debugDirData;
-    }
+
     return S_OK;
 
 ErrExit:
     if (param.debugDirData)
-    {
         delete [] param.debugDirData;
-    }
+
     return hr;
 }
 //#ifdef EXPORT_DIR_ENABLED
@@ -1325,11 +1289,11 @@ HRESULT Assembler::CreatePEFile(__in __nullterminated WCHAR *pwzOutputFilename)
     }
 
     if (FAILED(hr=CreateTLSDirectory())) goto exit;
-
     GUID mvid;
+    DWORD fileTimeStamp;
     if (FAILED(hr = m_pEmitter->GetMvid(&mvid))) goto exit;
-    if (FAILED(hr=CreateDebugDirectory(&mvid))) goto exit;
-
+    if (FAILED(hr = m_pCeeFileGen->GetFileTimeStamp(m_pCeeFile, &fileTimeStamp))) goto exit;
+    if (FAILED(hr = CreateDebugDirectory(&mvid, fileTimeStamp))) goto exit;
     if (FAILED(hr=m_pCeeFileGen->SetOutputFileName(m_pCeeFile, pwzOutputFilename))) goto exit;
 
         // Reserve a buffer for the meta-data
@@ -1507,6 +1471,7 @@ HRESULT Assembler::CreatePEFile(__in __nullterminated WCHAR *pwzOutputFilename)
                 pOpt->DllCharacteristics |= IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA;
         }
     }
+
         //Compute all the RVAs
     if (FAILED(hr=m_pCeeFileGen->LinkCeeFile(m_pCeeFile))) goto exit;
 
@@ -1564,12 +1529,9 @@ HRESULT Assembler::CreatePEFile(__in __nullterminated WCHAR *pwzOutputFilename)
 
     if(bClock) bClock->cFilegenBegin = GetTickCount();
 
-
     if (m_fGeneratePDB) {
-        DWORD fileTimeStamp;
-        if (FAILED(hr = m_pCeeFileGen->GetFileTimeStamp(m_pCeeFile, &fileTimeStamp))) goto exit;
         mdMethodDef entryPoint;
-        if (FAILED(hr = m_pCeeFileGen->GetEntryPoint(m_pCeeFile, &entryPoint))) goto exit;        
+        if (FAILED(hr = m_pCeeFileGen->GetEntryPoint(m_pCeeFile, &entryPoint))) goto exit;
         if (FAILED(hr = m_pEmitterPdb->DefinePdbStream(&mvid, fileTimeStamp, entryPoint))) goto exit;
         if (FAILED(hr = m_pEmitterPdb->Save(m_wzOutputPdbFilename, NULL))) goto exit;
     }

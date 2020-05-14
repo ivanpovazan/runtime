@@ -862,7 +862,7 @@ public:
     BOOL EmitClass(Class *pClass);
     HRESULT CreatePEFile(__in __nullterminated WCHAR *pwzOutputFilename);
     HRESULT CreateTLSDirectory();
-    HRESULT CreateDebugDirectory(GUID* mvid);
+    HRESULT CreateDebugDirectory(GUID* mvid, DWORD fileTimeStamp);
     HRESULT InitMetaData();
     Class *FindCreateClass(__in __nullterminated const char *pszFQN);
     BOOL EmitFieldRef(__in_z __in char *pszArg, int opcode);
