@@ -294,7 +294,10 @@ RegMeta::CreateNewMDNoModule()
     m_pStgdb->m_MiniMd.m_OptionValue.m_InitialSize = m_OptionValue.m_InitialSize;
     IfFailGo(m_pStgdb->InitNew());
 
-    m_OptionValue.m_RuntimeVersion = (LPSTR)"PDB v1.0";
+    const char* pdbVersion = "PDB v1.0";
+    m_OptionValue.m_RuntimeVersion = new char[strlen(pdbVersion)+1];
+    strcpy(m_OptionValue.m_RuntimeVersion, pdbVersion);
+
     IfFailGo(m_pStgdb->m_MiniMd.SetOption(&m_OptionValue));
 
 ErrExit:

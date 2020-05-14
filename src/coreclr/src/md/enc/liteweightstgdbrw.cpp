@@ -561,6 +561,18 @@ HRESULT CLiteWeightStgdbRW::GetSaveSize(// S_OK or error.
         }
     }
 
+    // Apperently this is also required for string pool as well - or at least the string pool should have size of 4 when empty
+    // TODO: test on VS debugger
+    if (m_MiniMd.m_StringHeap.GetUnalignedSize() <= 1)
+    {
+        if (!IsENCDelta(m_MiniMd.m_OptionValue.m_UpdateMode) &&
+            !m_MiniMd.IsMinimalDelta())
+        {
+            UINT32 nIndex_Ignore;
+            IfFailGo(m_MiniMd.m_StringHeap.AddString(" ", &nIndex_Ignore));
+        }
+    }
+
     // If we're saving a delta metadata, figure out how much space it will take to
     // save the minimal metadata stream (used only to identify that we have a delta
     // metadata... nothing should be in that stream.
