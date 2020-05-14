@@ -289,13 +289,14 @@ RegMeta::CreateNewMDNoModule()
     _ASSERTE(m_pStgdb == NULL);
     IfNullGo(m_pStgdb = new (nothrow) CLiteWeightStgdbRW);
 
-    // Initialize the new, empty database.
-
     // First tell the new database what sort of metadata to create
     m_pStgdb->m_MiniMd.m_OptionValue.m_MetadataVersion = m_OptionValue.m_MetadataVersion;
     m_pStgdb->m_MiniMd.m_OptionValue.m_InitialSize = m_OptionValue.m_InitialSize;
     IfFailGo(m_pStgdb->InitNew());
+
+    m_OptionValue.m_RuntimeVersion = (LPSTR)"PDB v1.0";
     IfFailGo(m_pStgdb->m_MiniMd.SetOption(&m_OptionValue));
+
 ErrExit:
     return hr;
 } // RegMeta::CreateNewMDNoModule
