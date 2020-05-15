@@ -574,6 +574,17 @@ DECLARE_INTERFACE_(IMetaDataEmit, IUnknown)
 // {F5DD9950-F693-42e6-830E-7B833E8146A9}
 EXTERN_GUID(IID_IMetaDataEmit2, 0xf5dd9950, 0xf693, 0x42e6, 0x83, 0xe, 0x7b, 0x83, 0x3e, 0x81, 0x46, 0xa9);
 
+//-------------------------------------
+//--- Portable PDBstream data structure
+//-------------------------------------
+typedef struct PORTABLE_PDB_STREAM {
+    BYTE            id[20];
+    mdMethodDef     entryPoint;
+    ULONG64         referencedTypeSystemTables;
+    ULONG           *typeSystemTableRows;
+    ULONG           typeSystemTableRowsSize;
+} PORTABLE_PDB_STREAM;
+
 //---
 #undef  INTERFACE
 #define INTERFACE IMetaDataEmit2
@@ -595,9 +606,13 @@ DECLARE_INTERFACE_(IMetaDataEmit2, IMetaDataEmit)
         ULONG sequencePtsBlobSize) PURE; // [IN] If not NULL, the name to set.    
 
     STDMETHOD(DefinePdbStream)(            // S_OK or error.
+        PORTABLE_PDB_STREAM * pdbStreamData) PURE; // [IN] If not NULL, the name to set.
+
+    STDMETHOD(BuildPdbStream)(            // S_OK or error.
         GUID * mvid,
         UINT32 timestamp, // [IN] If not NULL, the name to set.
-        mdMethodDef entryPoint) PURE; // [IN] If not NULL, the name to set.
+        mdMethodDef entryPoint,
+        PORTABLE_PDB_STREAM * pdbStreamData) PURE; // [IN] If not NULL, the name to set.
 
     STDMETHOD(DefineMethodSpec)(
         mdToken     tkParent,               // [IN] MethodDef or MemberRef

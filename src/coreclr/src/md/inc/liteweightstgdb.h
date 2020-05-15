@@ -32,6 +32,26 @@ class TiggerStorage;
 #pragma warning(pop)
 #endif // _PREFAST_
 
+class PdbStream2
+{
+private:
+    BYTE* m_data;
+    ULONG m_size;
+public:
+    PdbStream2() : m_data(NULL), m_size(0) {}
+    ~PdbStream2();
+
+    __checkReturn
+    HRESULT SetData(PORTABLE_PDB_STREAM* data);
+
+    __checkReturn
+    HRESULT SaveToStream(IStream* stream);
+
+    bool IsEmpty();
+
+    ULONG GetSize();
+};
+
 //*****************************************************************************
 // This class provides common definitions for heap segments.  It is both the
 //  base class for the heap, and the class for heap extensions (additional
@@ -241,10 +261,7 @@ protected:
     static BOOL IsValidFileNameLength(const WCHAR * wszFileName);
 
     __checkReturn
-    HRESULT DefinePdbStream(
-        GUID* mvid,
-        UINT32 timestamp,
-        mdMethodDef entryPoint);
+    HRESULT DefinePdbStream(PORTABLE_PDB_STREAM* pdbStreamData);
 
     CLiteWeightStgdbRW *m_pNextStgdb;
 
@@ -257,7 +274,7 @@ private:
     DWORD    m_dwDatabaseLFT;   // Low bytes of the database file's last write time
     DWORD    m_dwDatabaseLFS;   // Low bytes of the database file's size
     StgIO *  m_pStgIO;          // For file i/o.
-    PdbStream* m_pdbStream;
+    PdbStream2* m_pdbStream;
 
 };  // class CLiteWeightStgdbRW
 

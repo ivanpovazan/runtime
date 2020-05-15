@@ -137,9 +137,7 @@ ErrExit:
 }
 
 STDMETHODIMP RegMeta::DefinePdbStream(            // S_OK or error.
-    GUID* mvid,
-    UINT32 timestamp, // [IN] If not NULL, the name to set.
-    mdMethodDef entryPoint // [IN] If not NULL, the name to set.
+    PORTABLE_PDB_STREAM * pdbStreamData
 )
 {
     HRESULT     hr = S_OK;
@@ -153,11 +151,67 @@ STDMETHODIMP RegMeta::DefinePdbStream(            // S_OK or error.
 
     IfFailGo(m_pStgdb->m_MiniMd.PreUpdate());
 
-    IfFailGo(m_pStgdb->DefinePdbStream(mvid, timestamp, entryPoint));
+    IfFailGo(m_pStgdb->DefinePdbStream(pdbStreamData));
 
 ErrExit:
 
     STOP_MD_PERF(DefinePdbStream);
+    END_ENTRYPOINT_NOTHROW;
+
+    return hr;
+}
+
+STDMETHODIMP RegMeta::BuildPdbStream(            // S_OK or error.
+    GUID* mvid,
+    UINT32 timestamp, // [IN] If not NULL, the name to set.
+    mdMethodDef entryPoint,
+    PORTABLE_PDB_STREAM* pdbStreamData) // [IN] If not NULL, the name to set.
+{
+    HRESULT     hr = S_OK;
+
+    BEGIN_ENTRYPOINT_NOTHROW;
+
+    LOG((LOGMD, "RegMeta::BuildPdbStream()\n"));
+
+    START_MD_PERF()
+        LOCKWRITE();
+
+    IfFailGo(m_pStgdb->m_MiniMd.PreUpdate());
+
+    ULONG64 referencedTypeSystemTables = 0;
+    ULONG referencedTypeSystemTableRowsSize = 0;
+    for (ULONG i = 0; i < TBL_COUNT; i++)
+    {
+        if (m_pStgdb->m_MiniMd.m_Tables[i].GetRecordCount() > 0)
+        {
+            referencedTypeSystemTables |= (ULONG64)1UL << i;
+            referencedTypeSystemTableRowsSize++;
+        }
+    }
+    ULONG* referencedTypeSystemTableRows = new ULONG[referencedTypeSystemTableRowsSize];
+
+    ULONG* ptr = (ULONG*)referencedTypeSystemTableRows;
+    for (ULONG i = 0; i < TBL_COUNT; i++)
+    {
+        ULONG rowsSize = m_pStgdb->m_MiniMd.m_Tables[i].GetRecordCount();
+        if (rowsSize > 0)
+            *ptr++ = rowsSize;
+    }
+
+    // PDB stream ID is built from module ID and file timestamp as a unique identifier
+    memcpy(pdbStreamData->id, mvid, sizeof(GUID));
+    memcpy(pdbStreamData->id + sizeof(GUID), &timestamp, sizeof(ULONG));
+    pdbStreamData->entryPoint = entryPoint;
+    pdbStreamData->referencedTypeSystemTables = referencedTypeSystemTables;    
+    memcpy(pdbStreamData->typeSystemTableRows, referencedTypeSystemTableRows, referencedTypeSystemTableRowsSize * sizeof(ULONG));
+    pdbStreamData->typeSystemTableRowsSize = referencedTypeSystemTableRowsSize;
+
+ErrExit:
+
+    if (referencedTypeSystemTableRows != NULL)
+        delete[] referencedTypeSystemTableRows;
+
+    STOP_MD_PERF(BuildPdbStream);
     END_ENTRYPOINT_NOTHROW;
 
     return hr;

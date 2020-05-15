@@ -1052,10 +1052,14 @@ public:
         ULONG sequencePtsBlobSize); // [IN] If not NULL, the name to set.
 
     STDMETHODIMP DefinePdbStream(            // S_OK or error.
+        PORTABLE_PDB_STREAM * pdbStreamData
+    );
+
+    STDMETHODIMP BuildPdbStream(            // S_OK or error.
         GUID* mvid,
         UINT32 timestamp, // [IN] If not NULL, the name to set.
-        mdMethodDef entryPoint // [IN] If not NULL, the name to set.
-    );
+        mdMethodDef entryPoint,
+        PORTABLE_PDB_STREAM* pdbStreamData); // [IN] If not NULL, the name to set.
 
     STDMETHODIMP SetModuleProps(            // S_OK or error.
         LPCWSTR     szName);                // [IN] If not NULL, the name to set.

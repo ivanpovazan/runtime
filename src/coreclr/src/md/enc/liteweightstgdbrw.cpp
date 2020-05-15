@@ -513,7 +513,7 @@ HRESULT CLiteWeightStgdbRW::InitNew()
     InitializeLogging();
     LOG((LF_METADATA, LL_INFO10, "Metadata logging enabled\n"));
 
-    m_pdbStream = new PdbStream();
+    m_pdbStream = new PdbStream2();
 
     //<TODO>@FUTURE: should probably init the pools here instead of in the MiniMd.</TODO>
     return m_MiniMd.InitNew();
@@ -685,7 +685,7 @@ CLiteWeightStgdbRW::GetPoolSaveSize(
     {
         if (!m_pdbStream->IsEmpty())
         {
-            m_pdbStream->GetByteSize(&cbSize);
+            cbSize = m_pdbStream->GetSize();
             IfFailGo(AddStreamToList(cbSize, szHeap));
             IfFailGo(TiggerStorage::GetStreamSaveSize(szHeap, cbSize, &cbSize));
             *pcbSaveSize = cbSize;
@@ -1293,27 +1293,10 @@ ErrExit:
 
 __checkReturn
 HRESULT CLiteWeightStgdbRW::DefinePdbStream(
-    GUID* mvid,
-    UINT32 timestamp,
-    mdMethodDef entryPoint)
+    PORTABLE_PDB_STREAM* pdbStreamData)
 {
-    HRESULT hr = S_OK;
-
-    //TODO: change setters to return HRESULT and add IfFailGo
-    UINT32 size = sizeof(GUID) + sizeof(UINT32);
-    BYTE* pdbStreamId = new BYTE[size];
-    memcpy_s(pdbStreamId, size, mvid, sizeof(GUID));
-    memcpy_s(pdbStreamId+sizeof(GUID), size, &timestamp, sizeof(UINT32));
-
-    m_pdbStream->SetId(pdbStreamId, size);
-
-    delete[] pdbStreamId;
-
-    m_pdbStream->SetEntryPoint(entryPoint);
-    m_pdbStream->SetupTableReferences(m_MiniMd.m_Tables);
-// ErrExit:
-    return hr;
-} // CLiteWeightStgdbRW::DefinePdbStream
+    return m_pdbStream->SetData(pdbStreamData);
+}
 
 //=======================================================================================
 //
@@ -1326,3 +1309,57 @@ CLiteWeightStgdbRW::IsValidFileNameLength(
 {
     return TRUE;
 } // CLiteWeightStgdbRW::IsValidFileNameLength
+
+
+PdbStream2::~PdbStream2()
+{
+    if (m_data != NULL) delete[] m_data;
+}
+__checkReturn
+    HRESULT PdbStream2::SetData(PORTABLE_PDB_STREAM* data)
+{
+    HRESULT hr = S_OK;
+
+    m_size = sizeof(data->id) +
+             sizeof(data->entryPoint) +
+             sizeof(data->referencedTypeSystemTables) +
+             sizeof(ULONG) * data->typeSystemTableRowsSize;
+    m_data = new BYTE[m_size];
+
+    ULONG offset = 0;
+    IfFailGo(hr = memcpy_s(m_data + offset, m_size, data->id, sizeof(data->id)));
+    offset += sizeof(data->id);
+    IfFailGo(hr = memcpy_s(m_data + offset, m_size, &data->entryPoint, sizeof(data->entryPoint)));
+    offset += sizeof(data->entryPoint);
+    IfFailGo(hr = memcpy_s(m_data + offset, m_size, &data->referencedTypeSystemTables, sizeof(data->referencedTypeSystemTables)));
+    offset += sizeof(data->referencedTypeSystemTables);
+    IfFailGo(hr = memcpy_s(m_data + offset, m_size, data->typeSystemTableRows, sizeof(ULONG) * data->typeSystemTableRowsSize));
+    offset += sizeof(ULONG) * data->typeSystemTableRowsSize;
+
+    _ASSERTE(offset == m_size);
+ErrExit:
+    return hr;
+}
+
+__checkReturn
+    HRESULT PdbStream2::SaveToStream(IStream* stream)
+{
+    HRESULT hr = S_OK;
+    if (!IsEmpty())
+    {
+        ULONG written = 0;
+        hr = stream->Write(m_data, m_size, &written);
+        _ASSERTE(m_size == written);
+    }
+    return hr;
+}
+
+bool PdbStream2::IsEmpty()
+{
+    return m_size == 0;
+}
+
+ULONG PdbStream2::GetSize()
+{
+    return m_size;
+}

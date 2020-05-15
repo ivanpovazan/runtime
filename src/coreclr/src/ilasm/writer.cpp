@@ -1530,9 +1530,16 @@ HRESULT Assembler::CreatePEFile(__in __nullterminated WCHAR *pwzOutputFilename)
 
     if (m_fGeneratePDB) {
         mdMethodDef entryPoint;
+        PORTABLE_PDB_STREAM pdbStreamData;
+        pdbStreamData.typeSystemTableRows = new ULONG[TBL_COUNT];
+        // get info from system metadata
         if (FAILED(hr = m_pCeeFileGen->GetEntryPoint(m_pCeeFile, &entryPoint))) goto exit;
-        if (FAILED(hr = m_pEmitterPdb->DefinePdbStream(&mvid, fileTimeStamp, entryPoint))) goto exit;
+        if (FAILED(hr = m_pEmitter->BuildPdbStream(&mvid, fileTimeStamp, entryPoint, &pdbStreamData))) goto exit;
+        // setup pdb metadata and output result
+        if (FAILED(hr = m_pEmitterPdb->DefinePdbStream(&pdbStreamData))) goto exit;
         if (FAILED(hr = m_pEmitterPdb->Save(m_wzOutputPdbFilename, NULL))) goto exit;
+        if (pdbStreamData.typeSystemTableRows != NULL)
+            delete[] pdbStreamData.typeSystemTableRows;
     }
 
     // actually output the meta-data
