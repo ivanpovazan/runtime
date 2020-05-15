@@ -2432,6 +2432,22 @@ void Assembler::SetSourceFileName(BinStr* pbsName)
     }
 }
 
+void Assembler::SetPdbFileName(__in __nullterminated char* szName)
+{
+    if (szName)
+    {
+        if (*szName)
+        {
+            if (strcmp(m_szOutputPdbFilename, szName))
+            {
+                strcpy_s(m_szOutputPdbFilename, MAX_FILENAME_LENGTH * 3 + 1, szName);
+                WszMultiByteToWideChar(g_uCodePage, 0, szName, -1, m_wzOutputPdbFilename, MAX_FILENAME_LENGTH);
+            }
+        }
+        delete[] szName;
+    }
+}
+
 void Assembler::RecordTypeConstraints(GenericParamConstraintList* pGPCList, int numTyPars, TyParDescr* tyPars)
 {
     if (numTyPars > 0)

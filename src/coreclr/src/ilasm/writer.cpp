@@ -223,18 +223,17 @@ HRESULT Assembler::CreateDebugDirectory(GUID* mvid, DWORD fileTimeStamp)
 
     DWORD rsds = 0x53445352;
     DWORD pdbAge = 0x1;
-    char dbgPath[71] = "d:/temp_dir/deleteme/TestCecil/MyLib/bin/Debug/netcoreapp2.1/MyLib.pdb"; // TODO: fixme
-    DWORD len = sizeof(rsds) + sizeof(*mvid) + sizeof(pdbAge) + (DWORD)strlen(dbgPath) + 1;
+    DWORD len = sizeof(rsds) + sizeof(*mvid) + sizeof(pdbAge) + (DWORD)strlen(m_szOutputPdbFilename) + 1;
     BYTE* dbgDirData = new BYTE[len];
 
     DWORD offset = 0;
-    memcpy_s(dbgDirData + offset, len, &rsds, sizeof(rsds));
+    memcpy_s(dbgDirData + offset, len, &rsds, sizeof(rsds));                                        // RSDS
     offset += sizeof(rsds);
-    memcpy_s(dbgDirData + offset, len, mvid, sizeof(*mvid));
+    memcpy_s(dbgDirData + offset, len, mvid, sizeof(*mvid));                                        // PDB MVID (actual module id)
     offset += sizeof(GUID);
-    memcpy_s(dbgDirData + offset, len, &pdbAge, sizeof(pdbAge));
+    memcpy_s(dbgDirData + offset, len, &pdbAge, sizeof(pdbAge));                                    // PDB AGE
     offset += sizeof(pdbAge);
-    memcpy_s(dbgDirData + offset, len, dbgPath, strlen(dbgPath)+1);
+    memcpy_s(dbgDirData + offset, len, m_szOutputPdbFilename, strlen(m_szOutputPdbFilename)+1);     // PDB PATH
 
     debugDirIDD.Characteristics = 0;
     debugDirIDD.TimeDateStamp = VAL32(fileTimeStamp);

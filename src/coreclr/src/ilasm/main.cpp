@@ -93,6 +93,8 @@ WCHAR       *pwzInputFiles[1024];
 WCHAR       *pwzDeltaFiles[1024];
 
 char        szInputFilename[MAX_FILENAME_LENGTH*3];
+char*       szOutputPdbFilename;
+
 WCHAR       wzInputFilename[MAX_FILENAME_LENGTH];
 WCHAR       wzOutputFilename[MAX_FILENAME_LENGTH];
 WCHAR       wzOutputPdbFilename[MAX_FILENAME_LENGTH];
@@ -617,34 +619,25 @@ extern "C" int _cdecl wmain(int argc, __in WCHAR **argv)
                 if (extPos != NULL)
                     *extPos = 0;
                 wcscat_s(wzOutputFilename, MAX_FILENAME_LENGTH, (IsDLL ? W(".dll") : (IsOBJ ? W(".obj") : W(".exe"))));
+            }
 
-                if (!bNoDebug) // TODO: can be extracted into a function
-                {
-                    wcscpy_s(wzOutputPdbFilename, MAX_FILENAME_LENGTH, pwzInputFiles[0]);
-                    extPos = wcsrchr(wzOutputPdbFilename, L'.');
-                    if (extPos != NULL)
-                        *extPos = 0;
-                    wcscat_s(wzOutputPdbFilename, MAX_FILENAME_LENGTH, W(".pdb"));
-                }
-            }
-            else
+            if (pAsm->m_fGeneratePDB)
             {
-                if (!bNoDebug)
-                {
-                    wcscpy_s(wzOutputPdbFilename, MAX_FILENAME_LENGTH, wzOutputFilename);
-                    WCHAR* extPos = wcsrchr(wzOutputPdbFilename, L'.');
-                    if (extPos != NULL)
-                        *extPos = 0;
-                    wcscat_s(wzOutputPdbFilename, MAX_FILENAME_LENGTH, W(".pdb"));
-                }
+                wcscpy_s(wzOutputPdbFilename, MAX_FILENAME_LENGTH, wzOutputFilename);
+                WCHAR* extPos = wcsrchr(wzOutputPdbFilename, L'.');
+                if (extPos != NULL)
+                    *extPos = 0;
+                wcscat_s(wzOutputPdbFilename, MAX_FILENAME_LENGTH, W(".pdb"));
+                szOutputPdbFilename = FullFileName(wzOutputPdbFilename, uCodePage);
+                pAsm->SetPdbFileName(szOutputPdbFilename);
             }
+
             if(wzIncludePath == NULL)
             {
                 PathString wzIncludePathBuffer;
                 if (0 != WszGetEnvironmentVariable(W("ILASM_INCLUDE"), wzIncludePathBuffer))
                 {
                     wzIncludePath = wzIncludePathBuffer.GetCopyOfUnicodeString();
-
                 }
             }
             //------------ Assembler initialization done. Now, to business -----------------------
@@ -663,8 +656,6 @@ extern "C" int _cdecl wmain(int argc, __in WCHAR **argv)
                 pAsm->SetDLL(IsDLL);
                 pAsm->SetOBJ(IsOBJ);
                 wcscpy_s(pAsm->m_wzOutputFileName,MAX_FILENAME_LENGTH,wzOutputFilename);
-                if (pAsm->m_fGeneratePDB)
-                    wcscpy_s(pAsm->m_wzOutputPdbFilename, MAX_FILENAME_LENGTH, wzOutputPdbFilename);
                 strcpy_s(pAsm->m_szSourceFileName,MAX_FILENAME_LENGTH*3+1,szInputFilename);
 
                 if (SUCCEEDED(pAsm->InitMetaData()))

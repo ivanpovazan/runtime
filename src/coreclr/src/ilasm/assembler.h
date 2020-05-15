@@ -1046,9 +1046,10 @@ public:
     DWORD m_dwIncludeDebugInfo;
     BOOL  m_fGeneratePDB;
     char m_szSourceFileName[MAX_FILENAME_LENGTH*3+1];
-    WCHAR m_wzOutputFileName[MAX_FILENAME_LENGTH];
-    WCHAR m_wzOutputPdbFilename[MAX_FILENAME_LENGTH];
     WCHAR m_wzSourceFileName[MAX_FILENAME_LENGTH];
+    WCHAR m_wzOutputFileName[MAX_FILENAME_LENGTH];
+    char m_szOutputPdbFilename[MAX_FILENAME_LENGTH * 3 + 1];
+    WCHAR m_wzOutputPdbFilename[MAX_FILENAME_LENGTH];    
 	GUID	m_guidLang;
 	GUID	m_guidLangVendor;
 	GUID	m_guidDoc;
@@ -1205,6 +1206,7 @@ public:
     BOOL m_fSourceFileSet;
     void SetSourceFileName(__in __nullterminated char* szName);
     void SetSourceFileName(BinStr* pbsName);
+    void SetPdbFileName(__in __nullterminated char* szName);
     // header flags
     DWORD   m_dwSubsystem;
     WORD    m_wSSVersionMajor;
