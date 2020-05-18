@@ -415,6 +415,9 @@ public:
     /* Portable PDB tables */
     AddTblRecord(Document)
     AddTblRecord(MethodDebugInformation)
+    AddTblRecord(LocalScope)
+    AddTblRecord(LocalVariable)
+    AddTblRecord(LocalConstant)
     // TODO: rest of the tables
 
     // Specialized AddXxxToYyy() functions.

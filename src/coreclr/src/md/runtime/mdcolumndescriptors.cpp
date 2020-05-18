@@ -175,8 +175,20 @@ const BYTE CMiniMdBase::s_DocumentCol[] = { 2,
   103,0,4, 102,4,2, 103,6,2, 102,8,4,
 };
 const BYTE CMiniMdBase::s_MethodDebugInformationCol[] = { 2,
-  48,0,2, 103,2,2,
-  48,0,2, 103,4,2,
+  48,0,2,  103,2,2,
+  48,0,2,  103,2,4,
+};
+const BYTE CMiniMdBase::s_LocalScopeCol[] = { 1,
+  6,0,2,   26,2,2,  51,4,2,  52,6,2,  99,8,4,  99,12,4
+};
+const BYTE CMiniMdBase::s_LocalVariableCol[] = { 2,
+  97,0,2,  97,2,2,  101,4,2,
+  97,0,2,  97,2,2,  101,4,4
+};
+const BYTE CMiniMdBase::s_LocalConstantCol[] = { 3,
+  101,0,2, 103,2,2,
+  101,0,4, 103,4,4,
+  101,0,4, 103,4,2,
 };
 
 const BYTE* const CMiniMdBase::s_TableColumnDescriptors[] = {
@@ -232,5 +244,8 @@ s_Dummy2Col,
 s_Dummy3Col,
 // -- Actual portable PDB tables descriptors
 s_DocumentCol,
-s_MethodDebugInformationCol
+s_MethodDebugInformationCol,
+s_LocalScopeCol,
+s_LocalVariableCol,
+s_LocalConstantCol
 };

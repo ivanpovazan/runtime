@@ -475,6 +475,9 @@ CMiniMdBase::CMiniMdBase()
     /* Portable PDB tables */
     _ASSERTE((TypeFromToken(mdtDocument) >> 24)         == TBL_Document);
     _ASSERTE((TypeFromToken(mdtMethodDebugInformation) >> 24) == TBL_MethodDebugInformation);
+    _ASSERTE((TypeFromToken(mdtLocalScope) >> 24)       == TBL_LocalScope);
+    _ASSERTE((TypeFromToken(mdtLocalVariable) >> 24)    == TBL_LocalVariable);
+    _ASSERTE((TypeFromToken(mdtLocalConstant) >> 24)    == TBL_LocalConstant);
     // TODO: rest of the tables
 } // CMiniMdBase::CMiniMdBase
 

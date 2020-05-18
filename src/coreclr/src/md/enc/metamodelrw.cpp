@@ -155,9 +155,9 @@ g_TblSizeInfo[MDSizeIndex_Count][TBL_COUNT] =
        /* -- Actual portable PDB tables */
        0,           // Document
        0,           // MethodDebugInformation
-       // 0,           // LocalScope
-       // 0,           // LocalVariable
-       // 0,           // LocalConstant
+       0,           // LocalScope
+       0,           // LocalVariable
+       0,           // LocalConstant
        // 0,           // ImportScope
        // 0,           // StateMachineMethod
        // 0,           // CustomDebugInformation
@@ -217,9 +217,9 @@ g_TblSizeInfo[MDSizeIndex_Count][TBL_COUNT] =
        /* -- Actual portable PDB tables */
        0,       // Document
        0,       // MethodDebugInformation
-       // 0,       // LocalScope
-       // 0,       // LocalVariable
-       // 0,       // LocalConstant
+       0,       // LocalScope
+       0,       // LocalVariable
+       0,       // LocalConstant
        // 0,       // ImportScope
        // 0,       // StateMachineMethod
        // 0,       // CustomDebugInformation
@@ -288,9 +288,9 @@ const TblIndex g_TblIndex[TBL_COUNT] =
     {(ULONG) -1,        (ULONG) -1,     (ULONG)-1},         // Dummy3
     {(ULONG) -1,        (ULONG) -1,     mdtDocument},       // Document
     {(ULONG) -1,        (ULONG) -1,     mdtMethodDebugInformation},// MethodDebugInformation
-    // {(ULONG) -1,        (ULONG) -1,     mdtLocalScope},     // LocalScope
-    // {(ULONG) -1,        (ULONG) -1,     mdtLocalVariable},  // LocalVariable
-    // {(ULONG) -1,        (ULONG) -1,     mdtLocalConstant},  // LocalConstant
+    {(ULONG) -1,        (ULONG) -1,     mdtLocalScope},     // LocalScope
+    {(ULONG) -1,        (ULONG) -1,     mdtLocalVariable},  // LocalVariable
+    {(ULONG) -1,        (ULONG) -1,     mdtLocalConstant},  // LocalConstant
     // {(ULONG) -1,        (ULONG) -1,     mdtImportScope},    // ImportScope
     // {(ULONG) -1,        (ULONG) -1,     mdtStateMachineMethod},// StateMachineMethod
     // {(ULONG) -1,        (ULONG) -1,     mdtCustomDebugInformation},// CustomDebugInformation

@@ -114,7 +114,7 @@ class VerifyLayoutsMD
     Is something going to break based on previous comment?
     Hopefully there isn't a static array of size 45 laying around somewhere in the code
     */
-    static_assert_no_msg(TBL_COUNT == 50);
+    static_assert_no_msg(TBL_COUNT == 53);
 
 
 

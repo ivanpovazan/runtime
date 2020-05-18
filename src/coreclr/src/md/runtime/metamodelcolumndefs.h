@@ -429,4 +429,30 @@
     SCHEMA_ITEM_RID(MethodDebugInformation, Document, Document)
     SCHEMA_ITEM_BLOB(MethodDebugInformation, SequencePoints)
     SCHEMA_TABLE_END(MethodDebugInformation)
+
+    //-------------------------------------------------------------------------
+    //LocalScope
+    SCHEMA_TABLE_START(LocalScope)
+    SCHEMA_ITEM_RID(LocalScope, Method, Method)
+    SCHEMA_ITEM_RID(LocalScope, ImportScope, ModuleRef) // TODO: fixme -> ModuleRef should be ImportScopeTable
+    SCHEMA_ITEM_RID(LocalScope, VariableList, LocalVariable)
+    SCHEMA_ITEM_RID(LocalScope, ConstantList, LocalConstant)
+    SCHEMA_ITEM(LocalScope, ULONG, StartOffset)
+    SCHEMA_ITEM(LocalScope, ULONG, Length)
+    SCHEMA_TABLE_END(LocalScope)
+
+    //-------------------------------------------------------------------------
+    //LocalVariable
+    SCHEMA_TABLE_START(LocalVariable)
+    SCHEMA_ITEM(LocalVariable, USHORT, Attributes)
+    SCHEMA_ITEM(LocalVariable, USHORT, Index)
+    SCHEMA_ITEM_STRING(LocalVariable, Name)
+    SCHEMA_TABLE_END(LocalVariable)
+
+    //-------------------------------------------------------------------------
+    //LocalConstant
+    SCHEMA_TABLE_START(LocalConstant)
+    SCHEMA_ITEM_STRING(LocalConstant, Name)
+    SCHEMA_ITEM_BLOB(LocalConstant, Signature)
+    SCHEMA_TABLE_END(LocalConstant)
 // eof ------------------------------------------------------------------------
