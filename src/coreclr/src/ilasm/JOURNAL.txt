@@ -4,3 +4,10 @@
 - extend the IMetaData emitter to support required additional methods
 
 ppdb_signature = 0x424a5342
+
+1. introduce MetaEmit3 interface with all methods required by portable PDB
+2. introduce portable PDB flag to ilasm
+3. add contraint checkers for portable PDB tables
+4. move document table generation to AsmInit (or wherever it is actually done on SymWritter)
+5. check what to pass to document regarding hash value in ilasm
+6. sorting on local scope table
