@@ -1561,6 +1561,11 @@ public:
 class LocalScopeRec
 {
 METADATA_FIELDS_PROTECTION:
+    // Paddings m_Pad0-3 are necessary to properly offset the first fixed field which is StartOffset at offset 8
+    USHORT     m_Pad0;
+    USHORT     m_Pad1;
+    USHORT     m_Pad2;
+    USHORT     m_Pad3;
     ULONG      m_StartOffset;
     ULONG      m_Length;
 public:
