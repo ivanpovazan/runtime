@@ -199,12 +199,8 @@ STDMETHODIMP RegMeta::DefineLocalVariable(            // S_OK or error.
     pLocalVariable->SetAttributes(attribute);
     pLocalVariable->SetIndex(index); // slot
     IfFailGo(m_pStgdb->m_MiniMd.PutString(TBL_LocalVariable, LocalVariableRec::COL_Name, pLocalVariable, name));
-    UINT32 dummy;
-    GUID empty;
-    IfFailGo(m_pStgdb->m_MiniMd.AddGuid(empty, &dummy));
 
     *locVarToken = TokenFromRid(localVariableRecord, mdtLocalVariable);
-
 ErrExit:
 
     STOP_MD_PERF(DefineLocalVariable);

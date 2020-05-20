@@ -1029,7 +1029,7 @@ BOOL Assembler::EmitLocalScope(mdMethodDef methodDefToken, Scope* currScope, mdL
     while (pLocalVar != NULL)
     {
         mdLocalVariable locVarToken = mdLocalScopeNil;
-        USHORT attribute = pLocalVar->dwAttr & 0xffff;
+        USHORT attribute = 0; // TODO: get debuggerhidden attribute
         USHORT index = pLocalVar->nNum & 0xffff; // slot
         if (FAILED(m_pEmitterPdb->DefineLocalVariable(attribute, index, (char*)pLocalVar->szName, &locVarToken))) goto exit;
 
