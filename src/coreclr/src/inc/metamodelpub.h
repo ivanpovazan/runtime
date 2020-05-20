@@ -1599,7 +1599,7 @@ public:
 
         return GET_UNALIGNED_VAL32(&m_Length);
     }
-    void SetLength(USHORT length)
+    void SetLength(ULONG length)
     {
         LIMITED_METHOD_CONTRACT;
 
