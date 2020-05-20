@@ -1051,6 +1051,20 @@ public:
         BYTE* sequencePtsBlob,
         ULONG sequencePtsBlobSize); // [IN] If not NULL, the name to set.
 
+    STDMETHODIMP DefineLocalScope(            // S_OK or error.
+        ULONG methodDefRid, // [IN] If not NULL, the name to set.
+        ULONG importScopeRid,
+        ULONG firstLocalVarRid,
+        ULONG firstLocalConstRid,
+        ULONG startOffset,
+        ULONG length); // [IN] If not NULL, the name to set.
+
+    STDMETHODIMP DefineLocalVariable(            // S_OK or error.
+        USHORT attribute, // [IN] If not NULL, the name to set.
+        USHORT index,
+        char * name,
+        mdLocalVariable* locVarToken); // [IN] If not NULL, the name to set.
+
     STDMETHODIMP DefinePdbStream(            // S_OK or error.
         PORTABLE_PDB_STREAM * pdbStreamData
     );

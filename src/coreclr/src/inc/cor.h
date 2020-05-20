@@ -603,7 +603,21 @@ DECLARE_INTERFACE_(IMetaDataEmit2, IMetaDataEmit)
     STDMETHOD(DefineSequencePoints)(            // S_OK or error.
         ULONG docRid, // [IN] If not NULL, the name to set.
         BYTE * sequencePtsBlob,
-        ULONG sequencePtsBlobSize) PURE; // [IN] If not NULL, the name to set.    
+        ULONG sequencePtsBlobSize) PURE; // [IN] If not NULL, the name to set.
+
+    STDMETHOD(DefineLocalScope)(            // S_OK or error.
+        ULONG methodDefRid, // [IN] If not NULL, the name to set.
+        ULONG importScopeRid,
+        ULONG firstLocalVarRid,
+        ULONG firstLocalConstRid,
+        ULONG startOffset,
+        ULONG length) PURE; // [IN] If not NULL, the name to set.
+
+    STDMETHOD(DefineLocalVariable)(            // S_OK or error.
+        USHORT attribute, // [IN] If not NULL, the name to set.
+        USHORT index,
+        char *name,
+        mdLocalVariable *locVarToken) PURE; // [IN] If not NULL, the name to set.
 
     STDMETHOD(DefinePdbStream)(            // S_OK or error.
         PORTABLE_PDB_STREAM * pdbStreamData) PURE; // [IN] If not NULL, the name to set.

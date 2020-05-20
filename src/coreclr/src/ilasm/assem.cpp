@@ -1007,8 +1007,51 @@ BOOL Assembler::EmitMethod(Method *pMethod)
     }
     //--------------------------------------------------------------------------------
     EmitCustomAttributes(MethodToken, &(pMethod->m_CustomDescrList));
+
+    // emit scope
+    if (m_fGeneratePDB)
+    {
+        mdLocalVariable     firstLocVarToken = mdLocalScopeNil;
+        EmitLocalScope(MethodToken, pMethod->m_pCurrScope, &firstLocVarToken);
+    }
+
 exit:
     if (fSuccess == FALSE) m_State = STATE_FAIL;
+    return fSuccess;
+}
+
+typedef ARG_NAME_LIST* LOCAL_VAR_PTR;
+
+BOOL Assembler::EmitLocalScope(mdMethodDef methodDefToken, Scope* currScope, mdLocalVariable* firstLocVarToken)
+{
+    BOOL fSuccess = FALSE;
+    LOCAL_VAR_PTR pLocalVar = currScope->pLocals;
+    while (pLocalVar != NULL)
+    {
+        mdLocalVariable locVarToken = mdLocalScopeNil;
+        USHORT attribute = pLocalVar->dwAttr & 0xffff;
+        USHORT index = pLocalVar->nNum & 0xffff; // slot
+        if (FAILED(m_pEmitterPdb->DefineLocalVariable(attribute, index, (char*)pLocalVar->szName, &locVarToken))) goto exit;
+
+        if (*firstLocVarToken == mdLocalScopeNil)
+            *firstLocVarToken = locVarToken;
+
+        pLocalVar = pLocalVar->pNext;
+    }
+
+    ULONG methodRid = RidFromToken(methodDefToken);
+    ULONG importScopeRid = RidFromToken(mdImportScopeNil); // TODO: null for now
+    ULONG firstLocalVarRid = RidFromToken(*firstLocVarToken);
+    ULONG firstLocalConstRid = RidFromToken(mdLocalConstantNil); // TODO: null for now
+    ULONG start = currScope->dwStart;
+    ULONG length = currScope->dwEnd - currScope->dwStart;
+    if (FAILED(m_pEmitterPdb->DefineLocalScope(methodRid, importScopeRid, firstLocalVarRid, firstLocalConstRid, start, length))) goto exit;
+
+    fSuccess = TRUE;
+    for (ULONG i = 0; i < currScope->SubScope.COUNT(); i++)
+        fSuccess &= EmitLocalScope(methodDefToken, currScope->SubScope.PEEK(i), firstLocVarToken);
+
+exit:
     return fSuccess;
 }
 

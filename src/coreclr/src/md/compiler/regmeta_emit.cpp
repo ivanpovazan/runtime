@@ -136,6 +136,83 @@ ErrExit:
     return hr;
 }
 
+STDMETHODIMP RegMeta::DefineLocalScope(            // S_OK or error.
+    ULONG methodDefRid, // [IN] If not NULL, the name to set.
+    ULONG importScopeRid,
+    ULONG firstLocalVarRid,
+    ULONG firstLocalConstRid,
+    ULONG startOffset,
+    ULONG length)
+{
+    HRESULT     hr = S_OK;
+
+    BEGIN_ENTRYPOINT_NOTHROW;
+
+    LOG((LOGMD, "RegMeta::DefineLocalScope()\n"));
+
+    START_MD_PERF()
+        LOCKWRITE();
+
+    IfFailGo(m_pStgdb->m_MiniMd.PreUpdate());
+
+    ULONG localScopeRecord;
+    LocalScopeRec* pLocalScope;
+    IfFailGo(m_pStgdb->m_MiniMd.AddLocalScopeRecord(&pLocalScope, &localScopeRecord));
+    IfFailGo(m_pStgdb->m_MiniMd.PutCol(TBL_LocalScope, LocalScopeRec::COL_Method, pLocalScope, methodDefRid));
+    IfFailGo(m_pStgdb->m_MiniMd.PutCol(TBL_LocalScope, LocalScopeRec::COL_ImportScope, pLocalScope, importScopeRid));
+    IfFailGo(m_pStgdb->m_MiniMd.PutCol(TBL_LocalScope, LocalScopeRec::COL_VariableList, pLocalScope, firstLocalVarRid));
+    IfFailGo(m_pStgdb->m_MiniMd.PutCol(TBL_LocalScope, LocalScopeRec::COL_ConstantList, pLocalScope, firstLocalConstRid));
+
+    pLocalScope->SetStartOffset(startOffset);
+    pLocalScope->SetLength(length);
+
+    m_pStgdb->m_MiniMd.SetSorted(TBL_LocalScope, true);
+
+ErrExit:
+
+    STOP_MD_PERF(DefineLocalScope);
+    END_ENTRYPOINT_NOTHROW;
+
+    return hr;
+}
+
+STDMETHODIMP RegMeta::DefineLocalVariable(            // S_OK or error.
+    USHORT attribute, // [IN] If not NULL, the name to set.
+    USHORT index,
+    char* name,
+    mdLocalVariable* locVarToken)
+{
+    HRESULT     hr = S_OK;
+
+    BEGIN_ENTRYPOINT_NOTHROW;
+
+    LOG((LOGMD, "RegMeta::DefineLocalVariable(%s)\n", MDSTRA(name)));
+
+    START_MD_PERF()
+        LOCKWRITE();
+
+    IfFailGo(m_pStgdb->m_MiniMd.PreUpdate());
+
+    ULONG localVariableRecord;
+    LocalVariableRec* pLocalVariable;
+    IfFailGo(m_pStgdb->m_MiniMd.AddLocalVariableRecord(&pLocalVariable, &localVariableRecord));
+    pLocalVariable->SetAttributes(attribute);
+    pLocalVariable->SetIndex(index); // slot
+    IfFailGo(m_pStgdb->m_MiniMd.PutString(TBL_LocalVariable, LocalVariableRec::COL_Name, pLocalVariable, name));
+    UINT32 dummy;
+    GUID empty;
+    IfFailGo(m_pStgdb->m_MiniMd.AddGuid(empty, &dummy));
+
+    *locVarToken = TokenFromRid(localVariableRecord, mdtLocalVariable);
+
+ErrExit:
+
+    STOP_MD_PERF(DefineLocalVariable);
+    END_ENTRYPOINT_NOTHROW;
+
+    return hr;
+}
+
 STDMETHODIMP RegMeta::DefinePdbStream(            // S_OK or error.
     PORTABLE_PDB_STREAM * pdbStreamData
 )

@@ -11,3 +11,7 @@ ppdb_signature = 0x424a5342
 4. move document table generation to AsmInit (or wherever it is actually done on SymWritter)
 5. check what to pass to document regarding hash value in ilasm
 6. sorting on local scope table
+7. change char to LPCUTF8 type
+8. add sorting for local scope table
+9. needs to have sorted bit set in order to be valid
+10. locals not displaying correclty maybe take a look at pdb2pdb how it is done
