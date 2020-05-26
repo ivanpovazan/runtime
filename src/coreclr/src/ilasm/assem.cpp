@@ -539,7 +539,8 @@ BOOL Assembler::EmitMethodBody(Method* pMethod, BinStr* pbsOut)
 
                 // header ::= {LocalSignature, InitialDocument}
                 // LocalSignature
-                cnt = CorSigCompressData(0, blob->getBuff(sizeof(ULONG) + 1));
+                ULONG rid = RidFromToken(pMethod->m_LocalsSig);
+                cnt = CorSigCompressData(rid, blob->getBuff(sizeof(ULONG) + 1));
                 blob->remove((sizeof(ULONG) + 1) - cnt);
                 // InitialDocument - SKIP THIS because we always have a document defined
                 // cnt = CorSigCompressData(documentRid, blob->getBuff(sizeof(ULONG) + 1));
