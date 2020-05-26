@@ -31,7 +31,7 @@ Assembler::Assembler()
     m_pEmitter = NULL;
     m_pEmitterPdb = NULL;
     m_pImporter = NULL;
-    m_docMdToken = mdDocumentNil;
+    m_currentDocument = NULL;
 
     m_fCPlusPlus = FALSE;
     m_fWindowsCE = FALSE;
@@ -200,6 +200,7 @@ Assembler::~Assembler()
     delete [] m_szFullNS;
 
     m_DocWriterList.RESET(true);
+    m_MdDocumentTokenList.RESET(true);
 
     m_MethodBodyList.RESET(true);
 
@@ -525,14 +526,9 @@ BOOL Assembler::EmitMethodBody(Method* pMethod, BinStr* pbsOut)
             //--------------------------------------------------------------------------------
             if(m_fGeneratePDB)
             {
-                // TODO: here we assume there is always only one source file - document (missing hash algorithm and hash value)
-                if (m_docMdToken == mdDocumentNil)
-                    hr = m_pEmitterPdb->DefineDocument(m_szSourceFileName, &m_guidLang, new BYTE[2], &m_guidLang, &m_docMdToken);
-                _ASSERTE(SUCCEEDED(hr));
-
                 ULONG cnt = 0;
                 BinStr* blob = new BinStr();
-                ULONG documentRid = RidFromToken(m_docMdToken);
+                ULONG documentRid = RidFromToken(pMethod->m_DocumentOwner);
 
                 // Blob ::= header SequencePointRecord (SequencePointRecord | document-record)*
                 // SequencePointRecord :: = sequence-point-record | hidden-sequence-point-record

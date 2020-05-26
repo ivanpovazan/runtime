@@ -236,6 +236,8 @@ public:
     // Method body (header+code+EH)
     BinStr* m_pbsBody;
     mdToken m_Tok;
+    mdDocument m_DocumentOwner;
+
     Method(Assembler *pAssembler, Class *pClass, __in __nullterminated char *pszName, BinStr* pbsSig, DWORD Attr);
     ~Method()
     {

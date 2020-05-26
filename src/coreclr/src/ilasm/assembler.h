@@ -626,6 +626,16 @@ struct DocWriter
     ~DocWriter() { delete [] Name; if(pWriter) pWriter->Release();};
 };
 typedef FIFO<DocWriter> DocWriterList;
+
+struct Document
+{
+    char* Name;
+    mdDocument pDocumentToken;
+    Document() { Name = NULL; pDocumentToken = mdDocumentNil; };
+    ~Document() { if (Name) delete[] Name; pDocumentToken = mdDocumentNil; };
+};
+typedef FIFO<Document> DocumentList;
+
 /**************************************************************************/
 /* The assembler object does all the code generation (dealing with meta-data)
    writing a PE file etc etc. But does NOT deal with syntax (that is what
@@ -773,7 +783,6 @@ public:
     IMetaDataDispenserEx *m_pDisp;
     IMetaDataEmit2      *m_pEmitter;
     IMetaDataEmit2      *m_pEmitterPdb;
-    mdDocument          m_docMdToken;
     ICeeFileGen        *m_pCeeFileGen;
     IMetaDataImport2    *m_pImporter;			// Import interface.
     HCEEFILE m_pCeeFile;
@@ -1049,8 +1058,12 @@ public:
     char m_szSourceFileName[MAX_FILENAME_LENGTH*3+1];
     WCHAR m_wzSourceFileName[MAX_FILENAME_LENGTH];
     WCHAR m_wzOutputFileName[MAX_FILENAME_LENGTH];
-    char m_szOutputPdbFilename[MAX_FILENAME_LENGTH * 3 + 1];
-    WCHAR m_wzOutputPdbFilename[MAX_FILENAME_LENGTH];    
+    char m_szOutputPdbFilename[MAX_FILENAME_LENGTH*3+1];
+    WCHAR m_wzOutputPdbFilename[MAX_FILENAME_LENGTH];
+    DocumentList m_MdDocumentTokenList;
+    Document* m_currentDocument;
+
+
 	GUID	m_guidLang;
 	GUID	m_guidLangVendor;
 	GUID	m_guidDoc;

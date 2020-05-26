@@ -1042,6 +1042,7 @@ public:
         char*    docName, // [IN] If not NULL, the name to set.
         GUID        *hashAlg, // [IN] If not NULL, the name to set.
         BYTE        *hashVal, // [IN] If not NULL, the name to set.
+        ULONG cbHashVal,
         GUID        *lang, // [IN] If not NULL, the name to set.
         mdDocument  *docMdToken
     );

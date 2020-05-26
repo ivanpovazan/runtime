@@ -597,6 +597,7 @@ DECLARE_INTERFACE_(IMetaDataEmit2, IMetaDataEmit)
         char* docName, // [IN] If not NULL, the name to set.
         GUID * hashAlg, // [IN] If not NULL, the name to set.
         BYTE * hashVal, // [IN] If not NULL, the name to set.
+        ULONG cbHashVal,
         GUID * lang,
         mdDocument * docMdToken) PURE; // [IN] If not NULL, the name to set.
 

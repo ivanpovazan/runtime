@@ -82,6 +82,8 @@ Method::Method(Assembler *pAssembler, Class *pClass, __in __nullterminated char 
 
     m_TyPars = NULL;
     m_NumTyPars = 0;
+
+    m_DocumentOwner = pAssembler->m_currentDocument->pDocumentToken;
 }
 
 

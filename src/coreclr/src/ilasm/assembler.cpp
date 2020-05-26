@@ -2368,6 +2368,7 @@ void Assembler::AddMethodImpl(mdToken tkImplementedTypeSpec, __in __nullterminat
 // source file name paraphernalia
 void Assembler::SetSourceFileName(__in __nullterminated char* szName)
 {
+    HRESULT hr = S_OK;
     if(szName)
     {
         if(*szName)
@@ -2377,42 +2378,87 @@ void Assembler::SetSourceFileName(__in __nullterminated char* szName)
                 strcpy_s(m_szSourceFileName,MAX_FILENAME_LENGTH*3+1,szName);
                 WszMultiByteToWideChar(g_uCodePage,0,szName,-1,m_wzSourceFileName,MAX_FILENAME_LENGTH);
             }
-            if(m_fGeneratePDB && (m_pSymWriter != NULL))
+            if(m_fGeneratePDB)
             {
-                DocWriter* pDW;
-                unsigned i=0;
-                while((pDW = m_DocWriterList.PEEK(i++)) != NULL)
+                if (m_pSymWriter != NULL)
                 {
-                    if(!strcmp(szName,pDW->Name)) break;
-                }
-                if(pDW)
-                {
-                     m_pSymDocument = pDW->pWriter;
-                     delete [] szName;
-                }
-                else if(m_pSymWriter)
-                {
-                    HRESULT hr;
-                    WszMultiByteToWideChar(g_uCodePage,0,szName,-1,wzUniBuf,dwUniBuf);
-                    if(FAILED(hr=m_pSymWriter->DefineDocument(wzUniBuf,&m_guidLang,
-                        &m_guidLangVendor,&m_guidDoc,&m_pSymDocument)))
+                    DocWriter* pDW;
+                    unsigned i = 0;
+                    while ((pDW = m_DocWriterList.PEEK(i++)) != NULL)
                     {
-                        m_pSymDocument = NULL;
-                        report->error("Failed to define a document writer");
+                        if (!strcmp(szName, pDW->Name)) break;
                     }
-                    if((pDW = new DocWriter()) != NULL)
+                    if (pDW)
                     {
-                        pDW->Name = szName;
-                        pDW->pWriter = m_pSymDocument;
-                        m_DocWriterList.PUSH(pDW);
+                        m_pSymDocument = pDW->pWriter;
+                        delete[] szName;
+                    }
+                    else if (m_pSymWriter)
+                    {
+                        WszMultiByteToWideChar(g_uCodePage, 0, szName, -1, wzUniBuf, dwUniBuf);
+                        if (FAILED(hr = m_pSymWriter->DefineDocument(wzUniBuf, &m_guidLang,
+                            &m_guidLangVendor, &m_guidDoc, &m_pSymDocument)))
+                        {
+                            m_pSymDocument = NULL;
+                            report->error("Failed to define a document writer");
+                        }
+                        if ((pDW = new DocWriter()) != NULL)
+                        {
+                            pDW->Name = szName;
+                            pDW->pWriter = m_pSymDocument;
+                            m_DocWriterList.PUSH(pDW);
+                        }
+                        else
+                        {
+                            report->error("Out of memory");
+                            delete[] szName;
+                        }
+                    }
+                }
+                else // m_pSymWriter != NULL
+                {
+                    Document* document = NULL;
+                    unsigned i = 0;
+                    while ((document = m_MdDocumentTokenList.PEEK(i++)) != NULL)
+                    {
+                        if (!strcmp(szName, document->Name)) break;
+                    }
+                    if (document)
+                    {
+                        m_currentDocument = document;
+                        delete[] szName;
                     }
                     else
                     {
-                        report->error("Out of memory");
-                        delete [] szName;
+                        document = new Document();
+                        size_t nameSize = strlen(szName) + 1;
+                        document->Name = new char[nameSize];
+                        memcpy_s(document->Name, nameSize, szName, nameSize);
+                        // TODO: make use of hash algorithm and hash value
+                        GUID hashAlgorithmUnknown = { 0 };
+                        BYTE* hashValue = NULL;
+                        ULONG cbHashValue = 0;
+
+                        if (FAILED(hr = m_pEmitterPdb->DefineDocument(
+                            document->Name,
+                            &hashAlgorithmUnknown,
+                            hashValue,
+                            cbHashValue,
+                            &m_guidLang,
+                            &document->pDocumentToken)))
+                        {
+                            m_currentDocument = NULL;
+                            report->error("Failed to define a document: '%s'", szName);
+                            delete document;
+                            delete[] szName;
+                        }
+                        else
+                        {
+                            m_MdDocumentTokenList.PUSH(document);
+                            m_currentDocument = document;
+                        }
                     }
                 }
-                else delete [] szName;
             }
             else delete [] szName;
         }

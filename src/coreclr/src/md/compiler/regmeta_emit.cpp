@@ -56,6 +56,7 @@ STDMETHODIMP RegMeta::DefineDocument(            // S_OK or error.
     char* docName, // [IN] If not NULL, the name to set.
     GUID* hashAlg, // [IN] If not NULL, the name to set.
     BYTE* hashVal, // [IN] If not NULL, the name to set.
+    ULONG cbHashVal,
     GUID* lang, // [IN] If not NULL, the name to set.
     mdDocument * docMdToken
 )
@@ -66,7 +67,6 @@ STDMETHODIMP RegMeta::DefineDocument(            // S_OK or error.
 
     LOG((LOGMD, "RegMeta::DefineDocument(%S)\n", MDSTRA(docName)));
 
-
     START_MD_PERF()
         LOCKWRITE();
 
@@ -75,10 +75,8 @@ STDMETHODIMP RegMeta::DefineDocument(            // S_OK or error.
     ULONG docRecord;
     DocumentRec* pDocument;
     IfFailGo(m_pStgdb->m_MiniMd.AddDocumentRecord(&pDocument, &docRecord));
-    IfFailGo(m_pStgdb->m_MiniMd.PutGuid(TBL_Document, DocumentRec::COL_Language, pDocument, *lang));
 
-
-
+    // Name
     const char* delim = "\\";
     char* stringToken = strtok(docName, delim);
     UINT32 blobIndex = 0;
@@ -95,6 +93,13 @@ STDMETHODIMP RegMeta::DefineDocument(            // S_OK or error.
     }
     IfFailGo(m_pStgdb->m_MiniMd.PutBlob(TBL_Document, DocumentRec::COL_Name, pDocument, binStr->ptr(), binStr->length()));
     delete binStr;
+
+    // HashAlgorithm
+    IfFailGo(m_pStgdb->m_MiniMd.PutGuid(TBL_Document, DocumentRec::COL_HashAlgorithm, pDocument, *hashAlg));
+    // HashValue
+    IfFailGo(m_pStgdb->m_MiniMd.PutBlob(TBL_Document, DocumentRec::COL_Hash, pDocument, hashVal, cbHashVal));
+    // Language
+    IfFailGo(m_pStgdb->m_MiniMd.PutGuid(TBL_Document, DocumentRec::COL_Language, pDocument, *lang));
 
     *docMdToken = TokenFromRid(docRecord, mdtDocument);
 
