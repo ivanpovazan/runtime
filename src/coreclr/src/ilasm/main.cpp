@@ -170,6 +170,7 @@ extern "C" int _cdecl wmain(int argc, __in WCHAR **argv)
       printf("\n/DEBUG          Disable JIT optimization, create PDB file, use sequence points from PDB");
       printf("\n/DEBUG=IMPL     Disable JIT optimization, create PDB file, use implicit sequence points");
       printf("\n/DEBUG=OPT      Enable JIT optimization, create PDB file, use implicit sequence points");
+      printf("\n/DEBUG=PPDB     Disable JIT optimization, create portable PDB file");
       printf("\n/OPTIMIZE       Optimize long instructions to short");
       printf("\n/FOLD           Fold the identical method bodies into one");
       printf("\n/CLOCK          Measure and report compilation times");
@@ -248,39 +249,56 @@ extern "C" int _cdecl wmain(int argc, __in WCHAR **argv)
                     }
                     else if (!_stricmp(szOpt, "DEB"))
                     {
-                      pAsm->m_dwIncludeDebugInfo = 0x101;
-                      // PDB is ignored under 'DEB' option for ilasm on CoreCLR.
-                      // https://github.com/dotnet/coreclr/issues/2982
-                      bNoDebug = FALSE;
+                        pAsm->m_dwIncludeDebugInfo = 0x101;
+                        // PDB is ignored under 'DEB' option for ilasm on CoreCLR.
+                        // https://github.com/dotnet/coreclr/issues/2982
 
-                      WCHAR *pStr = EqualOrColon(argv[i]);
-                      if(pStr != NULL)
-                      {
-                          for(pStr++; *pStr == L' '; pStr++); //skip the blanks
-                          if(wcslen(pStr)==0) goto InvalidOption; //if no suboption
-                          else
-                          {
-                              WCHAR wzSubOpt[8];
-                              wcsncpy_s(wzSubOpt,8,pStr,3);
-                              wzSubOpt[3] = 0;
-                              if(0 == _wcsicmp(wzSubOpt,W("OPT")))
-                                pAsm->m_dwIncludeDebugInfo = 0x3;
-                              else if(0 == _wcsicmp(wzSubOpt,W("IMP")))
-                                pAsm->m_dwIncludeDebugInfo = 0x103;
-                              else
-                              {
-                                const WCHAR *pFmt =((*pStr == '0')&&(*(pStr+1) == 'x'))? W("%lx") : W("%ld");
-                                if(swscanf_s(pStr,pFmt,&(pAsm->m_dwIncludeDebugInfo))!=1)
-                                goto InvalidOption; // bad subooption
-                              }
-                          }
-                      }
+                        // The only way PDBs are supported is through '/DEBUG=PPDB' option
+                        // TODO: add github link
+                        WCHAR *pStr = EqualOrColon(argv[i]);
+                        if(pStr != NULL)
+                        {
+                            for(pStr++; *pStr == L' '; pStr++); //skip the blanks
+                            if(wcslen(pStr)==0) goto InvalidOption; //if no suboption
+                            else
+                            {
+                                WCHAR wzSubOpt[5] = { 0 };
+                                wcsncpy_s(wzSubOpt,5,pStr,4);
+                                if (0 == _wcsicmp(wzSubOpt, W("PPDB")))
+                                {
+                                    bNoDebug = FALSE;   // will generate portable PDB format
+                                }
+                                else
+                                {
+                                    wcsncpy_s(wzSubOpt,5,pStr,3);
+                                    wzSubOpt[4] = 0;
+                                    if (0 == _wcsicmp(wzSubOpt, W("OPT")))
+                                        pAsm->m_dwIncludeDebugInfo = 0x3;
+                                    else if (0 == _wcsicmp(wzSubOpt, W("IMP")))
+                                        pAsm->m_dwIncludeDebugInfo = 0x103;
+                                    else
+                                    {
+                                        const WCHAR* pFmt = ((*pStr == '0') && (*(pStr + 1) == 'x')) ? W("%lx") : W("%ld");
+                                        if (swscanf_s(pStr, pFmt, &(pAsm->m_dwIncludeDebugInfo)) != 1)
+                                            goto InvalidOption; // bad subooption
+                                    }
+                                }
+                            }
+                        }
+                        if (bNoDebug)
+                        {
+                            printf("WARNING: PDB is ignored under 'DEB' option for ilasm on CoreCLR.\n");
+                            printf("Use /DEBUG=PPDB option in order to generate portable PDB format. \n");
+                        }
                     }
                     else if (!_stricmp(szOpt, "PDB"))
                     {
-                      // 'PDB' option is ignored for ilasm on CoreCLR.
-                      // https://github.com/dotnet/coreclr/issues/2982
-                      bNoDebug = FALSE;
+                        // 'PDB' option is ignored for ilasm on CoreCLR.
+                        // https://github.com/dotnet/coreclr/issues/2982
+
+                        // The only way PDBs are supported is through '/DEBUG=PPDB' option
+                        printf("WARNING: Option /PDB is ignored for ilasm on CoreCLR.\n");
+                        printf("Use /DEBUG=PPDB option in order to generate portable PDB format. \n");
                     }
                     else if (!_stricmp(szOpt, "CLO"))
                     {
