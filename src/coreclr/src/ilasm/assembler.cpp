@@ -2393,7 +2393,7 @@ void Assembler::SetSourceFileName(__in __nullterminated char* szName)
                         m_pSymDocument = pDW->pWriter;
                         delete[] szName;
                     }
-                    else if (m_pSymWriter)
+                    else
                     {
                         WszMultiByteToWideChar(g_uCodePage, 0, szName, -1, wzUniBuf, dwUniBuf);
                         if (FAILED(hr = m_pSymWriter->DefineDocument(wzUniBuf, &m_guidLang,

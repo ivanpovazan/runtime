@@ -768,7 +768,7 @@ void Assembler::EmitScope(Scope* pSCroot)
     WCHAR*                  wzVarName=&wzUniBuf[0];
     char*                   szPhonyName=(char*)&wzUniBuf[dwUniBuf >> 1];
     Scope*                  pSC = pSCroot;
-    if(pSC && m_pSymWriter)
+    if(pSC && m_fGeneratePDB && m_pSymWriter)
     {
         if(SUCCEEDED(m_pSymWriter->OpenScope(pSC->dwStart,&scopeID)))
         {
