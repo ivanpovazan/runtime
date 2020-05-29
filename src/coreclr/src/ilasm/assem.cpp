@@ -476,6 +476,29 @@ BOOL Assembler::AddMethod(Method *pMethod)
 }
 
 
+BOOL Assembler::VerifySequencePoint(LinePC* curr, LinePC* next)
+{
+    if (!curr->IsHidden)
+    {
+        if ((curr->PC >= 0 && curr->PC < 0x20000000) &&
+            (next == NULL || (next != NULL && curr->PC < next->PC)) &&
+            (curr->Line >= 0 && curr->Line < 0x20000000 && curr->Line != 0xfeefee) &&
+            (curr->LineEnd >= 0 && curr->LineEnd < 0x20000000 && curr->LineEnd != 0xfeefee) &&
+            (curr->Column >= 0 && curr->Column < 0x10000) &&
+            (curr->ColumnEnd >= 0 && curr->ColumnEnd < 0x10000) &&
+            (curr->LineEnd > curr->Line || (curr->Line == curr->LineEnd && curr->ColumnEnd > curr->Column)))
+        {
+            return TRUE;
+        }
+        else
+        {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
+
 BOOL Assembler::EmitMethodBody(Method* pMethod, BinStr* pbsOut)
 {
     HRESULT hr = S_OK;
@@ -528,7 +551,7 @@ BOOL Assembler::EmitMethodBody(Method* pMethod, BinStr* pbsOut)
             {
                 ULONG cnt = 0;
                 BinStr* blob = new BinStr();
-                ULONG documentRid = RidFromToken(pMethod->m_DocumentOwner);
+                ULONG documentRid = 0;
 
                 // Blob ::= header SequencePointRecord (SequencePointRecord | document-record)*
                 // SequencePointRecord :: = sequence-point-record | hidden-sequence-point-record
@@ -550,68 +573,109 @@ BOOL Assembler::EmitMethodBody(Method* pMethod, BinStr* pbsOut)
                 INT32 deltaStartColumn = 0;
                 LinePC* currSeqPoint = NULL;
                 LinePC* prevSeqPoint = NULL;
+                LinePC* prevNonHiddenSeqPoint = NULL;
+                LinePC* nextSeqPoint = NULL;
+                BOOL isValid = TRUE;
 
                 for (UINT32 i = 0; i < pMethod->m_LinePCList.COUNT(); i++)
                 {
                     currSeqPoint = pMethod->m_LinePCList.PEEK(i);
-                    //offset
-                    if (i == 0)
-                        offset = currSeqPoint->PC;
+                    if (i < (pMethod->m_LinePCList.COUNT() - 1))
+                        nextSeqPoint = pMethod->m_LinePCList.PEEK(i + 1);
                     else
-                        offset = currSeqPoint->PC - prevSeqPoint->PC;
-                    cnt = CorSigCompressData(offset, blob->getBuff(sizeof(ULONG) + 1));
-                    blob->remove((sizeof(ULONG) + 1) - cnt);
+                        nextSeqPoint = NULL;
 
-                    //delta lines
-                    deltaLines = currSeqPoint->LineEnd - currSeqPoint->Line;
-                    cnt = CorSigCompressData(deltaLines, blob->getBuff(sizeof(ULONG) + 1));
-                    blob->remove((sizeof(ULONG) + 1) - cnt);
-
-                    //delta columns
-                    deltaColumns = (currSeqPoint->ColumnEnd == 0) ? currSeqPoint->Column : (currSeqPoint->ColumnEnd - currSeqPoint->Column);
-                    if (deltaLines == 0)
+                    isValid = VerifySequencePoint(currSeqPoint, nextSeqPoint);
+                    if (!isValid)
                     {
-                        cnt = CorSigCompressData(deltaColumns, blob->getBuff(sizeof(ULONG) + 1));
+                        report->warn("Sequence point at line: [0x%x] and offset: [0x%x] in method '%s' is not valid!\n",
+                            currSeqPoint->Line,
+                            currSeqPoint->PC,
+                            pMethod->m_szName);
+                        break; // TODO break or ignore?
+                    }
+
+                    if (!currSeqPoint->IsHidden)
+                    {
+                        //offset
+                        offset = (i == 0) ? currSeqPoint->PC : currSeqPoint->PC - prevSeqPoint->PC;
+                        cnt = CorSigCompressData(offset, blob->getBuff(sizeof(ULONG) + 1));
                         blob->remove((sizeof(ULONG) + 1) - cnt);
-                    }
-                    else
-                    {
-                        cnt = CorSigCompressSignedInt(deltaColumns, blob->getBuff(sizeof(int) + 1));
-                        blob->remove((sizeof(int) + 1) - cnt);
-                    }
 
-                    //delta start line
-                    if (i == 0)
-                    {
-                        deltaStartLine = currSeqPoint->Line;
-                        cnt = CorSigCompressData(deltaStartLine, blob->getBuff(sizeof(ULONG) + 1));
+                        //delta lines
+                        deltaLines = currSeqPoint->LineEnd - currSeqPoint->Line;
+                        cnt = CorSigCompressData(deltaLines, blob->getBuff(sizeof(ULONG) + 1));
                         blob->remove((sizeof(ULONG) + 1) - cnt);
-                    }
-                    else
-                    {
-                        deltaStartLine = currSeqPoint->Line - prevSeqPoint->Line;
-                        cnt = CorSigCompressSignedInt(deltaStartLine, blob->getBuff(sizeof(int) + 1));
-                        blob->remove((sizeof(int) + 1) - cnt);
-                    }
 
-                    //delta start column
-                    if (i == 0)
-                    {
-                        deltaStartColumn = currSeqPoint->Column;
-                        cnt = CorSigCompressData(deltaStartColumn, blob->getBuff(sizeof(ULONG) + 1));
-                        blob->remove((sizeof(ULONG) + 1) - cnt);
+                        //delta columns
+                        deltaColumns = currSeqPoint->ColumnEnd - currSeqPoint->Column;
+                        if (deltaLines == 0)
+                        {
+                            cnt = CorSigCompressData(deltaColumns, blob->getBuff(sizeof(ULONG) + 1));
+                            blob->remove((sizeof(ULONG) + 1) - cnt);
+                        }
+                        else
+                        {
+                            cnt = CorSigCompressSignedInt(deltaColumns, blob->getBuff(sizeof(int) + 1));
+                            blob->remove((sizeof(int) + 1) - cnt);
+                        }
+
+                        //delta start line
+                        if (prevNonHiddenSeqPoint == NULL)
+                        {
+                            deltaStartLine = currSeqPoint->Line;
+                            cnt = CorSigCompressData(deltaStartLine, blob->getBuff(sizeof(ULONG) + 1));
+                            blob->remove((sizeof(ULONG) + 1) - cnt);
+                        }
+                        else
+                        {
+                            deltaStartLine = currSeqPoint->Line - prevNonHiddenSeqPoint->Line;
+                            cnt = CorSigCompressSignedInt(deltaStartLine, blob->getBuff(sizeof(int) + 1));
+                            blob->remove((sizeof(int) + 1) - cnt);
+                        }
+
+                        //delta start column
+                        if (prevNonHiddenSeqPoint == NULL)
+                        {
+                            deltaStartColumn = currSeqPoint->Column;
+                            cnt = CorSigCompressData(deltaStartColumn, blob->getBuff(sizeof(ULONG) + 1));
+                            blob->remove((sizeof(ULONG) + 1) - cnt);
+                        }
+                        else
+                        {
+                            deltaStartColumn = currSeqPoint->Column - prevNonHiddenSeqPoint->Column;
+                            cnt = CorSigCompressSignedInt(deltaStartColumn, blob->getBuff(sizeof(int) + 1));
+                            blob->remove((sizeof(int) + 1) - cnt);
+                        }
+
+                        prevNonHiddenSeqPoint = currSeqPoint;
                     }
                     else
                     {
-                        deltaStartColumn = currSeqPoint->Column - prevSeqPoint->Column;
-                        cnt = CorSigCompressSignedInt(deltaStartColumn, blob->getBuff(sizeof(int) + 1));
-                        blob->remove((sizeof(int) + 1) - cnt);
+                        //offset
+                        offset = (i == 0) ? currSeqPoint->PC : currSeqPoint->PC - prevSeqPoint->PC;
+                        cnt = CorSigCompressData(offset, blob->getBuff(sizeof(ULONG) + 1));
+                        blob->remove((sizeof(ULONG) + 1) - cnt);
+
+                        //delta lines
+                        deltaLines = 0;
+                        cnt = CorSigCompressData(deltaLines, blob->getBuff(sizeof(ULONG) + 1));
+                        blob->remove((sizeof(ULONG) + 1) - cnt);
+
+                        //delta lines
+                        deltaColumns = 0;
+                        cnt = CorSigCompressData(deltaLines, blob->getBuff(sizeof(ULONG) + 1));
+                        blob->remove((sizeof(ULONG) + 1) - cnt);
                     }
                     prevSeqPoint = currSeqPoint;
                 }
 
-                hr = m_pEmitterPdb->DefineSequencePoints(documentRid, blob->ptr(), blob->length());
-                _ASSERTE(SUCCEEDED(hr));
+                if (isValid && currSeqPoint != NULL)
+                {
+                    documentRid = RidFromToken(currSeqPoint->ownerDocument->pDocumentToken);
+                    hr = m_pEmitterPdb->DefineSequencePoints(documentRid, blob->ptr(), blob->length());
+                    _ASSERTE(SUCCEEDED(hr));
+                }
 
                 delete blob;
             } // end if(m_fGeneratePDB)

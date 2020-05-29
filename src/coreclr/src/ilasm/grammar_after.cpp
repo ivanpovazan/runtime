@@ -300,9 +300,10 @@ Instr* SetupInstr(unsigned short opcode)
                 pVal->linenum = PENV->curLine;
                 pVal->column = 1;
                 pVal->linenum_end = PENV->curLine;
-                pVal->column_end = 0;
+                pVal->column_end = 2;
                 pVal->pc = PASM->m_CurPC;
             }
+            pVal->ownerDocument = PASM->m_currentDocument;
         }
     }
     return pVal;

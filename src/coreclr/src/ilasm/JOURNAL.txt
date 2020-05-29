@@ -1,1 +1,22 @@
 ppdb_signature = 0x424a5342
+
+---
+Document table
+    hash algorithm/hash value
+    support different delimiters
+Method debug information (sequence points)
+    method spanning on two documents? 
+Local scope
+    references vars/consts
+Local variables
+Local constants
+    method local constants
+Import scope
+    using C# / import VB / ilasm ?
+Method state machine
+    async/iterator methods
+Customg debug information
+    (C#, F#, VB)
+    
+Ilasm
+    assemble multiple files

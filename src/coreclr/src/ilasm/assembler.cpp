@@ -1418,7 +1418,15 @@ void Assembler::EmitOpcode(Instr* instr)
                 pLPC->LineEnd = instr->linenum_end;
                 pLPC->ColumnEnd = instr->column_end;
                 pLPC->PC = m_CurPC;
-                pLPC->pWriter = instr->pWriter;
+                pLPC->ownerDocument = instr->ownerDocument;
+                if (0xfeefee == instr->linenum) // && 0xfeefee == instr->linenum_end && 0 == instr->column && 0 == instr->column_end) TODO: not working raincode side
+                {
+                    pLPC->IsHidden = TRUE;
+                }
+                else
+                {
+                    pLPC->IsHidden = FALSE;
+                }
                 m_pCurMethod->m_LinePCList.PUSH(pLPC);
             }
             else report->error("\nOut of memory!\n");

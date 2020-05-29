@@ -10,6 +10,7 @@
 class Assembler;
 class PermissionDecl;
 class PermissionSetDecl;
+struct Document;
 
 #define MAX_EXCEPTIONS 16   // init.number; increased by 16 when needed
 
@@ -24,10 +25,10 @@ struct LinePC
     ULONG   LineEnd;
     ULONG   ColumnEnd;
     ULONG   PC;
-    ISymUnmanagedDocumentWriter* pWriter;
+    Document* ownerDocument;
+    BOOL    IsHidden;
 };
 typedef FIFO<LinePC> LinePCList;
-
 
 struct PInvokeDescriptor
 {
