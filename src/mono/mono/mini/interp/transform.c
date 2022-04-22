@@ -4229,9 +4229,9 @@ generate_code (TransformData *td, MonoMethod *method, MonoMethodHeader *header, 
 	gboolean emitting = TRUE;
 	gboolean adjust_stack = FALSE;
 	// utility for stopping the debugger
-	gboolean myfunc_for_debugging = ((int)strcmp(method->name, "Validate") == 0);
-	if (myfunc_for_debugging)
-		td->verbose_level = 2;
+	gboolean myfunc_for_debugging = !((int)strcmp(method->name, "Validate") == 0);
+	// if (myfunc_for_debugging)
+	// 	td->verbose_level = 2;
 
 	original_bb = bb = mono_basic_block_split (method, error, header);
 	goto_if_nok (error, exit);
@@ -4422,12 +4422,12 @@ generate_code (TransformData *td, MonoMethod *method, MonoMethodHeader *header, 
 				}
 				continue;
 			} else if (adjust_stack && td->cbb->stack_height >= 0) {
-				adjust_stack = FALSE;
 				if (td->cbb->stack_height > 0)
 					memcpy (td->stack, td->cbb->stack_state, td->cbb->stack_height * sizeof(td->stack [0]));
 				td->sp = td->stack + td->cbb->stack_height;
 				link_bblocks = TRUE;
 			}
+			adjust_stack = FALSE;
 
 			g_assert (td->sp >= td->stack);
 			in_offset = td->ip - header->code;
