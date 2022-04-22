@@ -4229,7 +4229,7 @@ generate_code (TransformData *td, MonoMethod *method, MonoMethodHeader *header, 
 	gboolean emitting = TRUE;
 	gboolean adjust_stack = FALSE;
 	// utility for stopping the debugger
-	gboolean myfunc_for_debugging = 1; //((int)strcmp(method->name, "Foo1") == 0);
+	gboolean myfunc_for_debugging = ((int)strcmp(method->name, "Validate") == 0);
 	if (myfunc_for_debugging)
 		td->verbose_level = 2;
 
@@ -4436,10 +4436,6 @@ generate_code (TransformData *td, MonoMethod *method, MonoMethodHeader *header, 
 
 			InterpBasicBlock *new_bb = td->offset_to_bb [in_offset];
 			if (new_bb != NULL && td->cbb != new_bb) {
-				if (new_bb->already_emitted) {
-					td->cbb = new_bb;
-					continue;
-				}
 				// IVAN: mark the current block with emitting information
 				td->cbb->already_emitted = emitting;
 				/* We are starting a new basic block. Change cbb and link them together */
@@ -4453,6 +4449,12 @@ generate_code (TransformData *td, MonoMethod *method, MonoMethodHeader *header, 
 				}
 				td->cbb->next_bb = new_bb;
 				td->cbb = new_bb;
+
+				// IVAN: the previous lines are needed when a skipped block needs to be
+				// linked to the new one. If the new one is already emitted, there is nothing
+				// to be done.
+				if (new_bb->already_emitted)
+					continue;
 
 				if (new_bb->stack_height >= 0) {
 					if (new_bb->stack_height > 0)
