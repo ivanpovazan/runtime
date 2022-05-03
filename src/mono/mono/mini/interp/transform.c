@@ -4393,11 +4393,12 @@ generate_code (TransformData *td, MonoMethod *method, MonoMethodHeader *header, 
 
 	td->dont_inline = g_list_prepend (td->dont_inline, method);
 
-// In order to properly determine stack sizes for back edges
-// we need to go through the basic blocks more than once.
-// First pass will generate code for those blocks which have their stacks initialized
-// and skips those which don't.
-// Next pass(es) will handle the skipped blocks and ignore the already generated ones.
+	// In order to properly determine stack sizes for back edges
+	// we need to go through the basic blocks more than once.
+	// First pass will generate code for those blocks which have their stacks initialized
+	// and skips those which don't.
+	// Next pass(es) will handle the skipped blocks and ignore the already generated ones.
+	// Naturally, if there are no back edges there will be a single pass.
 retry_code_gen:
 
 	while (td->ip < end) {
@@ -4440,9 +4441,9 @@ retry_code_gen:
 			/* We are starting a new basic block. Change cbb and link them together */
 			if (link_bblocks) {
 				/*
-				* By default we link cbb with the new starting bblock, unless the previous
-				* instruction is an unconditional branch (BR, LEAVE, ENDFINALLY)
-				*/
+				 * By default we link cbb with the new starting bblock, unless the previous
+				 * instruction is an unconditional branch (BR, LEAVE, ENDFINALLY)
+				 */
 				interp_link_bblocks (td, td->cbb, new_bb);
 				fixup_newbb_stack_locals (td, new_bb);
 			}
@@ -5513,7 +5514,7 @@ retry_code_gen:
 				MonoString *s = mono_ldstr_checked (image, token, error);
 				goto_if_nok (error, exit);
 				/* GC won't scan code stream, but reference is held by metadata
-				* machinery so we are good here */
+				 * machinery so we are good here */
 				interp_add_ins (td, MINT_LDSTR);
 				interp_ins_set_dreg (td->last_ins, td->sp [-1].local);
 				td->last_ins->data [0] = get_data_item_index (td, s);
@@ -5747,9 +5748,9 @@ retry_code_gen:
 				if (!interp_transform_call (td, method, target_method, generic_context, NULL, FALSE, error, FALSE, FALSE, FALSE))
 					goto exit;
 				/*
-				* CEE_UNBOX needs to push address of vtype while Nullable.Unbox returns the value type
-				* We create a local variable in the frame so that we can fetch its address.
-				*/
+				 * CEE_UNBOX needs to push address of vtype while Nullable.Unbox returns the value type
+				 * We create a local variable in the frame so that we can fetch its address.
+				 */
 				int local = create_interp_local (td, m_class_get_byval_arg (klass));
 				store_local (td, local);
 
@@ -6212,9 +6213,9 @@ retry_code_gen:
 
 			if (!m_class_is_valuetype (klass) && method->wrapper_type == MONO_WRAPPER_NONE && !readonly) {
 				/*
-				* Check the class for failures before the type check, which can
-				* throw other exceptions.
-				*/
+				 * Check the class for failures before the type check, which can
+				 * throw other exceptions.
+				 */
 				mono_class_setup_vtable (klass);
 				CHECK_TYPELOAD (klass);
 				interp_add_ins (td, MINT_LDELEMA_TC);
@@ -7046,10 +7047,10 @@ retry_code_gen:
 		case CEE_PREFIXREF: ves_abort(); break;
 #endif
 		/*
-		* Note: Exceptions thrown when executing a prefixed opcode need
-		* to take into account the number of prefix bytes (usually the
-		* throw point is just (ip - n_prefix_bytes).
-		*/
+		 * Note: Exceptions thrown when executing a prefixed opcode need
+		 * to take into account the number of prefix bytes (usually the
+		 * throw point is just (ip - n_prefix_bytes).
+		 */
 		case CEE_PREFIX1:
 			++td->ip;
 			switch (*td->ip) {
