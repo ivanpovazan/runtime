@@ -7159,9 +7159,9 @@ retry_code_gen:
 
 					const unsigned char *next_ip = td->ip + 5;
 					/* check for
-					*    ldftn method_sig
-					*    newobj Delegate::.ctor
-					*/
+					 *    ldftn method_sig
+					 *    newobj Delegate::.ctor
+					 */
 					if (next_ip < end &&
 						*next_ip == CEE_NEWOBJ &&
 						((ctor_method = interp_get_method (method, read32 (next_ip + 1), image, generic_context, error))) &&
@@ -7178,7 +7178,7 @@ retry_code_gen:
 					m = mono_marshal_get_managed_wrapper (m, delegate_klass, target_handle, wrapper_error);
 					if (!is_ok (wrapper_error)) {
 						/* Generate a call that will throw an exception if the
-						* UnmanagedCallersOnly attribute is used incorrectly */
+						 * UnmanagedCallersOnly attribute is used incorrectly */
 						interp_generate_ipe_throw_with_msg (td, wrapper_error);
 						mono_interp_error_cleanup (wrapper_error);
 						interp_add_ins (td, MINT_LDNULL);
