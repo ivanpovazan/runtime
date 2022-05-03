@@ -127,7 +127,7 @@ struct _InterpBasicBlock {
 	int eh_block : 1;
 	int dead: 1;
 
-	// IVAN: Mark the block if its code has been emitted
+	// Mark the block if its code has been emitted
 	gboolean already_emitted;
 };
 
