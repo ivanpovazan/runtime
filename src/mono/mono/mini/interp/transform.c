@@ -4227,7 +4227,7 @@ generate_code (TransformData *td, MonoMethod *method, MonoMethodHeader *header, 
 	// IVAN:
 	gboolean skipped_bbs_present = TRUE;
 	gboolean emitting = TRUE;
-	gboolean adjust_stack = FALSE;
+	gboolean blocks_skipped = FALSE;
 
 	original_bb = bb = mono_basic_block_split (method, error, header);
 	goto_if_nok (error, exit);
@@ -4402,7 +4402,7 @@ generate_code (TransformData *td, MonoMethod *method, MonoMethodHeader *header, 
 	// Next pass will handle the skipped blocks and ignore the already generated ones.
 	while (skipped_bbs_present) {
 		skipped_bbs_present = FALSE;
-		adjust_stack = FALSE;
+		blocks_skipped = FALSE;
 
 		while (td->ip < end) {
 			// IVAN: Logic for skipping already emitted blocks
@@ -4412,18 +4412,21 @@ generate_code (TransformData *td, MonoMethod *method, MonoMethodHeader *header, 
 					td->cbb = td->cbb->next_bb;
 					if (td->cbb->il_offset == bb->end)
 						bb = bb->next;
-					adjust_stack = TRUE;
+					blocks_skipped = TRUE;
 				} else {
 					td->ip = end; // nothing to be done
 				}
 				continue;
-			} else if (adjust_stack && td->cbb->stack_height >= 0) {
-				if (td->cbb->stack_height > 0)
-					memcpy (td->stack, td->cbb->stack_state, td->cbb->stack_height * sizeof(td->stack [0]));
-				td->sp = td->stack + td->cbb->stack_height;
+			} else if (blocks_skipped) {
+				if (td->cbb->stack_height >= 0) {
+					if (td->cbb->stack_height > 0)
+						memcpy (td->stack, td->cbb->stack_state, td->cbb->stack_height * sizeof(td->stack [0]));
+					td->sp = td->stack + td->cbb->stack_height;
+				}
 				link_bblocks = TRUE;
+				emitting = TRUE;
 			}
-			adjust_stack = FALSE;
+			blocks_skipped = FALSE;
 
 			g_assert (td->sp >= td->stack);
 			in_offset = td->ip - header->code;
