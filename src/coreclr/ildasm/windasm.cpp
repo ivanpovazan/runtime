@@ -27,6 +27,7 @@
 // All externs are defined in DASM.CPP
 extern BOOL                    g_fDumpIL;
 extern BOOL                    g_fDumpHeader;
+extern BOOL                    g_fDumpHeaderDbgDir;
 extern BOOL                    g_fDumpAsmCode;
 extern BOOL                    g_fDumpTokens;
 extern BOOL                    g_fDumpStats;
@@ -171,6 +172,10 @@ int ProcessOneArg(_In_ __nullterminated char* szArg, _Out_ char** ppszObjFileNam
         else if (_stricmp(szOpt, "hea") == 0)
         {
             g_fDumpHeader = TRUE;
+            if (_stricmp(&szArg[1], "headers+dbgdir") == 0)
+            {
+                g_fDumpHeaderDbgDir = TRUE;
+            }
         }
         else if (_stricmp(szOpt, "adv") == 0)
         {

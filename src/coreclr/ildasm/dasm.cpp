@@ -38,6 +38,7 @@ DECLARE_NATIVE_STRING_RESOURCE_TABLE(NATIVE_STRING_RESOURCE_NAME);
 
 #include "mdfileformat.h"
 
+#define DEBUG_DIR_TYPE_OFFSET_IN_BYTES 12
 
 struct MIDescriptor
 {
@@ -72,6 +73,7 @@ DWORD                   g_NumAsmRefs;
 DWORD                   g_NumModules;
 BOOL                    g_fDumpIL = TRUE;
 BOOL                    g_fDumpHeader = FALSE;
+BOOL                    g_fDumpHeaderDbgDir = FALSE;
 BOOL                    g_fDumpAsmCode = TRUE;
 extern BOOL             g_fDumpTokens; // declared in formatType.cpp
 BOOL                    g_fDumpStats = FALSE;
@@ -5306,6 +5308,102 @@ void DumpBaseReloc(const char *szName, IMAGE_DATA_DIRECTORY *pDir, void* GUICook
         printLine(GUICookie,"");
     }
 }
+
+void DumpDebugDirectories(const char *szName, IMAGE_DATA_DIRECTORY *dbgDirectoryHeader, void* GUICookie)
+{
+    char* szStr = &szString[0];
+    sprintf_s(szString,SZSTRING_SIZE,"// %s", szName);
+    printLine(GUICookie,szStr);
+
+    DWORD dbgDirectoriesSize = VAL32(dbgDirectoryHeader->Size);
+    if (!dbgDirectoriesSize || (dbgDirectoriesSize % sizeof(IMAGE_DEBUG_DIRECTORY) != 0))
+    {
+        printLine(GUICookie,RstrUTF(IDS_E_NODATA));
+        return;
+    }
+    DWORD dbgDirectoriesCnt = dbgDirectoriesSize / sizeof(IMAGE_DEBUG_DIRECTORY);
+
+    char *pDbgDirectoriesStart, *pDbgDirectoriesEnd;
+    if (g_pPELoader->getVAforRVA(VAL32(dbgDirectoryHeader->VirtualAddress), (void **) &pDbgDirectoriesStart) == FALSE)
+    {
+        printLine(GUICookie,RstrUTF(IDS_E_IMPORTDATA));
+        return;
+    }
+    pDbgDirectoriesEnd = pDbgDirectoriesStart + dbgDirectoriesSize;
+
+    IMAGE_DEBUG_DIRECTORY debugDirectory;
+    WORD idx = 0;
+    DWORD dwCodeViewDbgDirSize = 0;
+    char *pCodeViewDbgDirStart = NULL;
+    for (char* ptr = pDbgDirectoriesStart; ptr != pDbgDirectoriesEnd; ptr += sizeof(IMAGE_DEBUG_DIRECTORY), idx++)
+    {
+        memcpy_s(&debugDirectory, sizeof(debugDirectory), ptr, sizeof(debugDirectory));
+    
+        sprintf_s(szString,SZSTRING_SIZE,"// Debug directory [0x%08x]", idx);
+        printLine(GUICookie,szStr);
+        sprintf_s(szString,SZSTRING_SIZE,"//              0x%08x Characteristics", debugDirectory.Characteristics);
+        printLine(GUICookie,szStr);
+        sprintf_s(szString,SZSTRING_SIZE,"//              0x%08x TimeDateStamp", debugDirectory.TimeDateStamp);
+        printLine(GUICookie,szStr);
+        sprintf_s(szString,SZSTRING_SIZE,"//              0x%08x MajorVersion", debugDirectory.MajorVersion);
+        printLine(GUICookie,szStr);
+        sprintf_s(szString,SZSTRING_SIZE,"//              0x%08x MinorVersion", debugDirectory.MinorVersion);
+        printLine(GUICookie,szStr);
+        sprintf_s(szString,SZSTRING_SIZE,"//              0x%08x Type", debugDirectory.Type);
+        printLine(GUICookie,szStr);
+        sprintf_s(szString,SZSTRING_SIZE,"//              0x%08x Size of data", debugDirectory.SizeOfData);
+        printLine(GUICookie,szStr);
+        sprintf_s(szString,SZSTRING_SIZE,"//              0x%08x Address of raw data", debugDirectory.AddressOfRawData);
+        printLine(GUICookie,szStr);
+        sprintf_s(szString,SZSTRING_SIZE,"//              0x%08x Pointer to raw data", debugDirectory.PointerToRawData);
+        printLine(GUICookie,szStr);
+        if (debugDirectory.Type == IMAGE_DEBUG_TYPE_CODEVIEW)
+        {
+            dwCodeViewDbgDirSize = debugDirectory.SizeOfData;
+            if (g_pPELoader->getVAforRVA(VAL32(debugDirectory.AddressOfRawData), (void **) &pCodeViewDbgDirStart) == FALSE)
+            {
+                printLine(GUICookie,RstrUTF(IDS_E_NODATA));
+                return;
+            }
+        }
+    }
+
+    if (pCodeViewDbgDirStart)
+    {
+        DWORD offset = 0;
+        GUID pdbGuid;
+        WCHAR wzPdbGuid[128];
+        char* ptr = pCodeViewDbgDirStart;
+        DWORD RSDS = *(DWORD*)(ptr+offset);
+        if (VAL32(RSDS) != VAL32(0x53445352))
+        {
+            printLine(GUICookie,RstrUTF(IDS_E_INVALIDRECORD));
+            return;
+        }
+        offset += sizeof(DWORD);
+        strcpy_s(szString,SZSTRING_SIZE,"// ----- CODEVIEW debug directory data:");
+        printLine(GUICookie,szStr);
+        sprintf_s(szString,SZSTRING_SIZE,"// RSDS:                       0x%08x", RSDS);
+        printLine(GUICookie,szStr);
+
+        memcpy_s(&pdbGuid, sizeof(GUID), ptr+offset, sizeof(GUID));
+        offset += sizeof(GUID);
+        StringFromGUID2(pdbGuid, wzPdbGuid, ARRAY_SIZE(wzPdbGuid));
+        sprintf_s(szString,SZSTRING_SIZE,"// PDB Guid:                   %S", wzPdbGuid);
+        printLine(GUICookie,szStr);
+
+        DWORD pdbAge = *(DWORD*)(ptr+offset);
+        offset += sizeof(DWORD);
+        sprintf_s(szString,SZSTRING_SIZE,"// PDB Age:                    0x%08x", pdbAge);
+        printLine(GUICookie,szStr);
+
+        sprintf_s(szString,SZSTRING_SIZE,"// PDB Path:                  %*s", dwCodeViewDbgDirSize-offset, ptr+offset);
+        printLine(GUICookie,szStr);
+    }
+
+    printLine(GUICookie,"");
+}
+
 void DumpIAT(const char *szName, IMAGE_DATA_DIRECTORY *pDir, void* GUICookie)
 {
     char* szStr = &szString[0];
@@ -5674,6 +5772,8 @@ void DumpHeader(IMAGE_COR20_HEADER *CORHeader, void* GUICookie)
         DumpBaseReloc("Base Relocation Table",&pOptHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC],GUICookie);
         DumpIAT("Import Address Table", &pOptHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT],GUICookie);
         DumpIAT("Delay Load Import Address Table", &pOptHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT],GUICookie);
+        if (g_fDumpHeaderDbgDir)
+            DumpDebugDirectories("Debug directories", &pOptHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG],GUICookie);
     }
     else
     {
