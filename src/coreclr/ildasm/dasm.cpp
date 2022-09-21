@@ -5862,6 +5862,8 @@ void DumpHeader(IMAGE_COR20_HEADER *CORHeader, void* GUICookie)
         DumpBaseReloc("Base Relocation Table",&pOptHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC],GUICookie);
         DumpIAT("Import Address Table", &pOptHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT],GUICookie);
         DumpIAT("Delay Load Import Address Table", &pOptHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT],GUICookie);
+        if (g_fDumpHeaderDbgDir)
+            DumpDebugDirectories("Debug directories", &pOptHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG],GUICookie);
     }
     if(dwAddrOfEntryPoint != 0) DumpEntryPoint(dwAddrOfEntryPoint,dwEntryPointSize,GUICookie);
     printLine(GUICookie,"");
