@@ -20,6 +20,7 @@ public:
     PdbHeap();
     ~PdbHeap();
 
+    __checkReturn HRESULT Init(BYTE* data, ULONG size);
     __checkReturn HRESULT SetData(PORT_PDB_STREAM* data);
     __checkReturn HRESULT SaveToStream(IStream* stream);
     BOOL    IsEmpty();

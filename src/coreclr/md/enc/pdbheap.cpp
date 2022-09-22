@@ -18,6 +18,16 @@ PdbHeap::~PdbHeap()
 }
 
 __checkReturn
+HRESULT PdbHeap::Init(BYTE* data, ULONG size)
+{
+    m_size = size;
+    m_data = new BYTE[m_size];
+    if (memcpy_s(m_data, m_size, data, m_size))
+        return E_FAIL;
+    return S_OK;
+}
+
+__checkReturn
 HRESULT PdbHeap::SetData(PORT_PDB_STREAM* data)
 {
     m_size = sizeof(data->id) +

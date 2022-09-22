@@ -279,6 +279,16 @@ CLiteWeightStgdbRW::InitFileForRead(
         IfFailGo(m_MiniMd.InitPoolOnMem(MDPoolBlobs, NULL, 0, bReadOnly));
     }
 
+#ifdef FEATURE_METADATA_EMIT_PORTABLE_PDB
+    // Load the pdb pool/heap.
+    if (SUCCEEDED(hr = pStorage->OpenStream(PDB_STREAM, &cbData, &pvData)))
+    {
+        m_pPdbHeap = new PdbHeap();
+        hr = m_pPdbHeap->Init(reinterpret_cast<BYTE*>(pvData), cbData);
+        IfFailGo(hr);
+    }
+#endif
+
     // Open the metadata.
     hr = pStorage->OpenStream(COMPRESSED_MODEL_STREAM, &cbData, &pvData);
     if (hr == STG_E_FILENOTFOUND)
