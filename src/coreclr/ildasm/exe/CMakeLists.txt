@@ -4,6 +4,7 @@ add_definitions(-DUNICODE)
 add_definitions(-D_UNICODE)
 add_definitions(-D_FEATURE_NO_HOST)
 add_definitions(-D__ILDASM__)
+add_definitions(-DFEATURE_METADATA_EMIT_PORTABLE_PDB)
 
 add_definitions(-DFEATURE_CORECLR)
 
@@ -66,10 +67,10 @@ add_executable_clr(ildasm
 set(ILDASM_LINK_LIBRARIES
     ${START_LIBRARY_GROUP} # Start group of libraries that have circular references
     utilcodestaticnohost
-    mdcompiler_wks
-    mdruntime_wks
-    mdruntimerw_wks
-    mdstaticapi
+    mdcompiler_ppdb
+    mdruntime_ppdb
+    mdruntimerw_ppdb
+    mdstaticapi_ppdb
     ${END_LIBRARY_GROUP} # End group of libraries that have circular references
     corguids
 )
