@@ -37,6 +37,7 @@ DECLARE_NATIVE_STRING_RESOURCE_TABLE(NATIVE_STRING_RESOURCE_NAME);
 #endif
 
 #include "mdfileformat.h"
+#include "portablepdbmdi.h"
 
 #define DEBUG_DIR_TYPE_OFFSET_IN_BYTES 12
 
@@ -51,7 +52,9 @@ struct MIDescriptor
 ISymUnmanagedReader*        g_pSymReader = NULL;
 
 IMDInternalImport*      g_pImport = NULL;
+IMDInternalImport*      g_pImportPdb = NULL;
 IMetaDataImport2*        g_pPubImport;
+IMetaDataImport2*        g_pPubImportPdb;
 extern IMetaDataAssemblyImport* g_pAssemblyImport;
 PELoader *              g_pPELoader;
 void *                  g_pMetaData;
@@ -3480,6 +3483,16 @@ void PrettyPrintOverrideDecl(ULONG i, __inout __nullterminated char* szString, v
     szptr+=sprintf_s(szptr,SZSTRING_REMAINING_SIZE(szptr),"%s%s",ProperName((char*)pszMemberName),pszTailSig);
 
     if(g_fDumpTokens) szptr+=sprintf_s(szptr,SZSTRING_REMAINING_SIZE(szptr),COMMENT(" /*%08X::%08X*/ "),tkDeclParent,(*g_pmi_list)[i].tkDecl);
+}
+
+BOOL DumpDocument(mdToken docToken, IMDInternalImport* imp)
+{
+    const char *docName;
+    imp->GetNameOfDocument(docToken, &docName);
+    char* szStr = &szString[0];
+    sprintf_s(szString,SZSTRING_SIZE,"// [0x%x]:        %s", docToken, docName);
+    printLine(NULL,szStr);
+    return TRUE;
 }
 
 #ifdef _PREFAST_
@@ -7480,10 +7493,12 @@ FILE* OpenOutput(_In_ __nullterminated const char* szFileName)
 #endif
 BOOL DumpFile()
 {
+    HENUMInternal           docsEnumerator;
     BOOL        fSuccess = FALSE;
     static WCHAR       wzInputFileName[MAX_FILENAME_LENGTH];
+    static WCHAR       wzPdbFileName[MAX_FILENAME_LENGTH];
     static char     szFilenameANSI[MAX_FILENAME_LENGTH*3];
-    IMetaDataDispenser *pMetaDataDispenser = NULL;
+    IMetaDataDispenserEx2 *pMetaDataDispenser = NULL;
     const char *pszFilename = g_szInputFile;
     const DWORD openFlags = ofRead | (g_fProject ? 0 : ofNoTransform);
 
@@ -7618,7 +7633,7 @@ BOOL DumpFile()
     }
 
     TokenSigInit(g_pImport);
-    if (FAILED(MetaDataGetDispenser(CLSID_CorMetaDataDispenser, IID_IMetaDataDispenser, (LPVOID*)&pMetaDataDispenser)))
+    if (FAILED(MetaDataGetDispenser(CLSID_CorMetaDataDispenser, IID_IMetaDataDispenserEx2, (LPVOID*)&pMetaDataDispenser)))
     {
         if (g_fDumpHeader)
             DumpHeader(g_CORHeader, g_pFile);
@@ -7632,6 +7647,57 @@ BOOL DumpFile()
         printError(g_pFile, RstrUTF(IDS_E_OPENMD));
         goto exit;
     }
+
+    // PPDB
+    // TODO:
+    // 1. Here we are opening a scope and retrieving public MD interface, which we then convert to internal one
+    // we should probably do this differently.
+    // 2. The internal interface has two implementations RW and RO
+    // we are currently changing mdinternalrw (but there is also *ro which invokes the metamodel.h)
+    wcscpy_s(wzPdbFileName, MAX_FILENAME_LENGTH, wzInputFileName);
+    WCHAR* extPos = wcsrchr(wzPdbFileName, L'.');
+    if (extPos != NULL)
+        *extPos = 0;
+    wcscat_s(wzPdbFileName, MAX_FILENAME_LENGTH, W(".pdb"));
+
+    if (FAILED(pMetaDataDispenser->OpenScope(wzPdbFileName, openFlags, IID_IMetaDataImport2, (LPUNKNOWN *)&g_pPubImportPdb )))
+    {
+        printError(g_pFile, RstrUTF(IDS_E_OPENMD));
+        goto exit;
+    }
+
+    if (FAILED(GetMetaDataInternalInterfaceFromPublic((LPUNKNOWN)g_pPubImportPdb, IID_IMDInternalImport, (LPVOID *)&g_pImportPdb)))
+    {
+        if (g_fDumpHeader)
+            DumpHeader(g_CORHeader, g_pFile);
+        printError(g_pFile, RstrUTF(IDS_E_OPENMD));
+        goto exit;
+    }
+
+    //--------------------------------------------------------------
+    mdToken *               docs = NULL;
+    DWORD                   docsCount = 0;
+    DWORD docCount = g_pImportPdb->GetCountWithTokenKind(mdtDocument);
+    docs = new mdToken[docCount];
+    if (FAILED(g_pImportPdb->EnumAllInit(mdtDocument,&docsEnumerator)))
+    {
+        printError(g_pFile, "MetaData error: cannot enumerate all documents");
+        goto exit;
+    }
+    docsCount = g_pImportPdb->EnumGetCount(&docsEnumerator);
+    if(docsCount)
+    {
+        docs = new mdToken[docsCount];
+    }
+    DWORD i = 0;
+    printLine(g_pFile,COMMENT("// Documents: "));
+    while (g_pImportPdb->EnumNext(&docsEnumerator, &docs[i]))
+    {
+        DumpDocument(docs[i], g_pImportPdb);
+    }
+    g_pImportPdb->EnumClose(&docsEnumerator);
+    printLine(g_pFile,"");
+    //--------------------------------------------------------------
 
     if((g_uNCA = g_pImport->GetCountWithTokenKind(mdtCustomAttribute)))
     {

@@ -1789,6 +1789,11 @@ public:
     // MethodPtr
     ULONG   _GETRID(MethodPtr,Method);
 
+#ifdef FEATURE_METADATA_EMIT_PORTABLE_PDB
+    // DocumentRec
+    _GETBLOB(Document,Name);
+#endif
+
     // MethodRec
     ULONG   _GETFLD(Method,RVA);
     USHORT  _GETFLD(Method,ImplFlags);

@@ -14,6 +14,9 @@
 #define _METADATA_H_
 
 #include "ex.h"
+#ifdef FEATURE_METADATA_EMIT_PORTABLE_PDB
+#include "portablepdbmdds.h"
+#endif
 
 class IMetaModelCommon;
 class MDInternalRW;
@@ -510,6 +513,13 @@ DECLARE_INTERFACE_(IMDInternalImport, IUnknown)
     STDMETHOD(GetIfaceTypeOfTypeDef)(
         mdTypeDef   classdef,               // [IN] given classdef.
         ULONG       *pIface) PURE;          // [OUT] 0=dual, 1=vtable, 2=dispinterface
+
+#ifdef FEATURE_METADATA_EMIT_PORTABLE_PDB
+    __checkReturn
+    STDMETHOD(GetNameOfDocument)(
+        mdDocument md,
+        LPCSTR     *pszDocumentName) PURE;
+#endif
 
     // get the name of either methoddef
     __checkReturn

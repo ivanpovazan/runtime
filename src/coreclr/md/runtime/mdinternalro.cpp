@@ -1026,6 +1026,26 @@ HRESULT MDInternalRO::GetIfaceTypeOfTypeDef(
     return hr;
 } // MDInternalRO::GetIfaceTypeOfTypeDef
 
+#ifdef FEATURE_METADATA_EMIT_PORTABLE_PDB
+//*****************************************************************************
+// Given a methoddef, return a pointer to methoddef's name
+//*****************************************************************************
+__checkReturn
+HRESULT
+MDInternalRO::GetNameOfDocument(
+    mdDocument md,
+    LPCSTR     *pszDocumentName)
+{
+    // name of method will not change. So no need to lock
+    HRESULT      hr;
+    DocumentRec *pDocumentRec;
+    *pszDocumentName = NULL;
+    IfFailRet(m_LiteWeightStgdb.m_MiniMd.GetDocumentRecord(RidFromToken(md), &pDocumentRec));
+    IfFailRet(m_LiteWeightStgdb.m_MiniMd.getNameOfDocument(pDocumentRec, NULL, NULL));
+    return S_OK;
+} // MDInternalRO::GetNameOfDocument
+#endif
+
 //*****************************************************************************
 // Given a methoddef, return a pointer to methoddef's name
 //*****************************************************************************

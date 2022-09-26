@@ -718,6 +718,11 @@ ULONG MDInternalRW::GetCountWithTokenKind(     // return hresult
     case mdtMethodSpec:
         ulCount = m_pStgdb->m_MiniMd.getCountMethodSpecs();
         break;
+#ifdef FEATURE_METADATA_EMIT_PORTABLE_PDB
+    case mdtDocument:
+        ulCount = m_pStgdb->m_MiniMd.getCountDocuments();
+        break;
+#endif
     default:
 #ifdef _DEBUG
         if(CLRConfig::GetConfigValue(CLRConfig::INTERNAL_AssertOnBadImageFormat, 1))
@@ -1436,6 +1441,12 @@ HRESULT MDInternalRW::EnumAllInit(      // return S_FALSE if record not found
         phEnum->m_ulCount = m_pStgdb->m_MiniMd.getCountCustomAttributes();
         break;
 
+#ifdef FEATURE_METADATA_EMIT_PORTABLE_PDB
+    case mdtDocument:
+        phEnum->m_ulCount = m_pStgdb->m_MiniMd.getCountDocuments();
+        break;
+#endif
+
     default:
         _ASSERTE(!"Bad token kind!");
         break;
@@ -1889,6 +1900,67 @@ HRESULT MDInternalRW::GetIfaceTypeOfTypeDef(
 
     return hr;
 } // MDInternalRW::GetIfaceTypeOfTypeDef
+
+#ifdef FEATURE_METADATA_EMIT_PORTABLE_PDB
+//*****************************************************************************
+// Given a methoddef, return a pointer to methoddef's name
+//*****************************************************************************
+__checkReturn
+HRESULT
+MDInternalRW::GetNameOfDocument(
+    mdDocument md,
+    LPCSTR     *pszDocumentName)
+{
+    // name of method will not change. So no need to lock
+    HRESULT      hr;
+    DocumentRec *pDocumentRec;
+    // *pszDocumentName = NULL;
+    char delim[1];
+    IfFailRet(m_pStgdb->m_MiniMd.GetDocumentRecord(RidFromToken(md), &pDocumentRec));
+
+    const BYTE* blobPtr;
+    DWORD blobSize;
+    IfFailRet(m_pStgdb->m_MiniMd.getNameOfDocument(pDocumentRec, &blobPtr, &blobSize));
+
+    DWORD len = blobSize-1;
+    ULONG* parts = new ULONG[len]{0};
+    BYTE* pBlob = (BYTE*)blobPtr;
+
+    delim[0] = *pBlob;
+    pBlob++;
+    blobSize--;
+
+    DWORD i = 0;
+    while (blobSize != 0)
+    {
+        ULONG cnt = CorSigUncompressData(pBlob, &parts[i++]);
+        blobSize -= cnt;
+        pBlob += cnt;
+    }
+
+    *pszDocumentName = new char[256]{0};
+    char* ptr = (char*)*pszDocumentName;
+    MetaData::DataBlob* db = new MetaData::DataBlob();
+    for (i = 0; i < len; i++)
+    {
+        if (parts[i] == 0)
+            continue;
+        IfFailRet(m_pStgdb->m_MiniMd.getBlob(parts[i], db));
+        strncat(ptr, (const char*) db->GetDataPointer(), db->GetSize());
+        ptr += db->GetSize();
+        if (i != len - 1 || (i < len - 1 && parts[i+1] != 0))
+        {
+            strncat(ptr, (const char*) delim, 1);
+            ptr ++;
+        }
+    }
+    ptr = NULL;
+
+    delete [] parts;
+
+    return S_OK;
+} // MDInternalRW::GetNameOfDocument
+#endif
 
 //*****************************************************************************
 // Given a methoddef, return a pointer to methoddef's name

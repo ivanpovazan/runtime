@@ -220,6 +220,13 @@ public:
         mdTypeDef   classdef,               // [IN] given classdef.
         ULONG       *pIface);               // [OUT] 0=dual, 1=vtable, 2=dispinterface
 
+#ifdef FEATURE_METADATA_EMIT_PORTABLE_PDB
+    __checkReturn
+    STDMETHODIMP GetNameOfDocument(
+        mdDocument md,
+        LPCSTR     *pszDocumentName);
+#endif
+
     // get the name of either methoddef
     __checkReturn
     STDMETHODIMP GetNameOfMethodDef(    // return the name of the memberdef in UTF8
