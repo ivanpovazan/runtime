@@ -21,12 +21,12 @@ namespace Internal.IL
 
             Debug.Assert(method.IsRuntimeImplemented);
 
-            TypeDesc owningType = method.OwningType;
+            // TypeDesc owningType = method.OwningType;
 
-            if (owningType.IsDelegate)
-            {
-                return DelegateMethodILEmitter.EmitIL(method);
-            }
+            // if (owningType.IsDelegate)
+            // {
+            //     return DelegateMethodILEmitter.EmitIL(method);
+            // }
 
             return null;
         }

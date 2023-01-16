@@ -1299,7 +1299,7 @@ namespace ILCompiler.DependencyAnalysis
         {
             if (!context.IsCppCodegenTemporaryWorkaround)
             {
-                Debug.Assert(_type.IsTypeDefinition || !_type.HasSameTypeDefinition(context.ArrayOfTClass), "Asking for Array<T> MethodTable");
+                // Debug.Assert(_type.IsTypeDefinition || !_type.HasSameTypeDefinition(context.ArrayOfTClass), "Asking for Array<T> MethodTable");
             }
         }
 

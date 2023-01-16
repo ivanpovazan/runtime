@@ -57,7 +57,7 @@ namespace ILCompiler
 
         protected override RuntimeInterfacesAlgorithm GetRuntimeInterfacesAlgorithmForNonPointerArrayType(ArrayType type)
         {
-            _arrayOfTRuntimeInterfacesAlgorithm ??= new ArrayOfTRuntimeInterfacesAlgorithm(SystemModule.GetKnownType("System", "Array`1"));
+            _arrayOfTRuntimeInterfacesAlgorithm ??= new ArrayOfTRuntimeInterfacesAlgorithm(SystemModule.GetKnownType("System.Collections.Generic", "List`1"));
             return _arrayOfTRuntimeInterfacesAlgorithm;
         }
 
@@ -102,7 +102,7 @@ namespace ILCompiler
 
             if (_arrayOfTInterfaces == null)
             {
-                DefType[] implementedInterfaces = SystemModule.GetKnownType("System", "Array`1").ExplicitlyImplementedInterfaces;
+                DefType[] implementedInterfaces = new DefType[0];
                 TypeDesc[] interfaceDefinitions = new TypeDesc[implementedInterfaces.Length];
                 for (int i = 0; i < interfaceDefinitions.Length; i++)
                     interfaceDefinitions[i] = implementedInterfaces[i].GetTypeDefinition();
@@ -132,18 +132,18 @@ namespace ILCompiler
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private IEnumerable<MethodDesc> GetAllMethods(TypeDesc type, bool virtualOnly)
         {
-            if (type.IsDelegate)
-            {
-                return GetAllMethodsForDelegate(type, virtualOnly);
-            }
-            else if (type.IsEnum)
-            {
-                return GetAllMethodsForEnum(type, virtualOnly);
-            }
-            else if (type.IsValueType)
-            {
-                return GetAllMethodsForValueType(type, virtualOnly);
-            }
+            // if (type.IsDelegate)
+            // {
+            //     return GetAllMethodsForDelegate(type, virtualOnly);
+            // }
+            // else if (type.IsEnum)
+            // {
+            //     return GetAllMethodsForEnum(type, virtualOnly);
+            // }
+            // else if (type.IsValueType)
+            // {
+            //     return GetAllMethodsForValueType(type, virtualOnly);
+            // }
 
             return virtualOnly ? type.GetVirtualMethods() : type.GetMethods();
         }
@@ -183,7 +183,7 @@ namespace ILCompiler
             {
                 if (!type.IsArrayTypeWithoutGenericInterfaces())
                 {
-                    MetadataType arrayShadowType = _arrayOfTType ??= SystemModule.GetType("System", "Array`1");
+                    MetadataType arrayShadowType = _arrayOfTType ??= SystemModule.GetType("System.Collections.Generic", "List`1");
                     return arrayShadowType.MakeInstantiatedType(((ArrayType)type).ElementType);
                 }
 

@@ -1013,27 +1013,28 @@ namespace ILCompiler.DependencyAnalysis
             new string[] { "Internal.Runtime", "ThreadStatics", "GetThreadStaticBaseForType" }
         };
 
-        private ISymbolNode[] _helperEntrypointSymbols;
+        // private ISymbolNode[] _helperEntrypointSymbols;
 
         public ISymbolNode HelperEntrypoint(HelperEntrypoint entrypoint)
         {
-            _helperEntrypointSymbols ??= new ISymbolNode[s_helperEntrypointNames.Length];
+            // _helperEntrypointSymbols ??= new ISymbolNode[s_helperEntrypointNames.Length];
+            return ExternSymbol("NYI");
 
-            int index = (int)entrypoint;
+            // int index = (int)entrypoint;
 
-            ISymbolNode symbol = _helperEntrypointSymbols[index];
-            if (symbol == null)
-            {
-                var entry = s_helperEntrypointNames[index];
+            // ISymbolNode symbol = _helperEntrypointSymbols[index];
+            // if (symbol == null)
+            // {
+            //     var entry = s_helperEntrypointNames[index];
 
-                var type = _context.SystemModule.GetKnownType(entry[0], entry[1]);
-                var method = type.GetKnownMethod(entry[2], null);
+            //     var type = _context.SystemModule.GetKnownType(entry[0], entry[1]);
+            //     var method = type.GetKnownMethod(entry[2], null);
 
-                symbol = MethodEntrypoint(method);
+            //     symbol = MethodEntrypoint(method);
 
-                _helperEntrypointSymbols[index] = symbol;
-            }
-            return symbol;
+            //     _helperEntrypointSymbols[index] = symbol;
+            // }
+            // return symbol;
         }
 
         private MetadataType _systemArrayOfTClass;
@@ -1041,7 +1042,7 @@ namespace ILCompiler.DependencyAnalysis
         {
             get
             {
-                return _systemArrayOfTClass ??= _context.SystemModule.GetKnownType("System", "Array`1");
+                return _systemArrayOfTClass ??= _context.SystemModule.GetKnownType("System.Collections.Generic", "List`1");
             }
         }
 

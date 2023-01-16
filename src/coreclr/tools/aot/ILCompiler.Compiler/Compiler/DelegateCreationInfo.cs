@@ -211,18 +211,18 @@ namespace ILCompiler
             if (targetMethod.Signature.IsStatic)
             {
                 MethodDesc invokeThunk;
-                MethodDesc initMethod;
+                // MethodDesc initMethod;
 
                 if (!closed)
                 {
-                    initMethod = systemDelegate.GetKnownMethod("InitializeOpenStaticThunk", null);
+                    // initMethod = systemDelegate.GetKnownMethod("InitializeOpenStaticThunk", null);
                     invokeThunk = delegateInfo.Thunks[DelegateThunkKind.OpenStaticThunk];
                 }
                 else
                 {
                     // Closed delegate to a static method (i.e. delegate to an extension method that locks the first parameter)
                     invokeThunk = delegateInfo.Thunks[DelegateThunkKind.ClosedStaticThunk];
-                    initMethod = systemDelegate.GetKnownMethod("InitializeClosedStaticThunk", null);
+                    // initMethod = systemDelegate.GetKnownMethod("InitializeClosedStaticThunk", null);
                 }
 
                 var instantiatedDelegateType = delegateType as InstantiatedType;
@@ -230,7 +230,7 @@ namespace ILCompiler
                     invokeThunk = context.GetMethodForInstantiatedType(invokeThunk, instantiatedDelegateType);
 
                 return new DelegateCreationInfo(
-                    factory.MethodEntrypoint(initMethod),
+                    factory.MethodEntrypoint(systemDelegate.GetMethod("Clone", null)),
                     targetMethod,
                     constrainedType,
                     constrainedType == null ? TargetKind.ExactCallableAddress : TargetKind.ConstrainedMethod,
@@ -288,8 +288,9 @@ namespace ILCompiler
                 }
 
                 Debug.Assert(constrainedType == null);
+                _ = initializeMethodName;
                 return new DelegateCreationInfo(
-                    factory.MethodEntrypoint(systemDelegate.GetKnownMethod(initializeMethodName, null)),
+                    factory.MethodEntrypoint(systemDelegate.GetMethod("Clone", null)),
                     targetMethod,
                     constrainedType,
                     kind);

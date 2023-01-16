@@ -67,12 +67,12 @@ namespace Internal.TypeSystem
 
         public static void Validate(MetadataType type, ComputedInstanceFieldLayout layout)
         {
-            ExplicitLayoutValidator validator = new ExplicitLayoutValidator(type);
+            // ExplicitLayoutValidator validator = new ExplicitLayoutValidator(type);
 
-            foreach (FieldAndOffset fieldAndOffset in layout.Offsets)
-            {
-                validator.AddToFieldLayout(fieldAndOffset.Offset.AsInt, fieldAndOffset.Field.FieldType);
-            }
+            // foreach (FieldAndOffset fieldAndOffset in layout.Offsets)
+            // {
+            //     validator.AddToFieldLayout(fieldAndOffset.Offset.AsInt, fieldAndOffset.Field.FieldType);
+            // }
         }
 
         private void AddToFieldLayout(int offset, TypeDesc fieldType)

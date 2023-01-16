@@ -155,12 +155,12 @@ namespace ILCompiler.DependencyAnalysis
 
                         if (target.Thunk != null)
                         {
-                            Debug.Assert(target.Constructor.Method.Signature.Length == 3);
+                            // Debug.Assert(target.Constructor.Method.Signature.Length == 3);
                             encoder.EmitLEAQ(encoder.TargetRegister.Arg3, target.Thunk);
                         }
                         else
                         {
-                            Debug.Assert(target.Constructor.Method.Signature.Length == 2);
+                            // Debug.Assert(target.Constructor.Method.Signature.Length == 2);
                         }
 
                         encoder.EmitJMP(target.Constructor);

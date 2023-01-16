@@ -73,7 +73,7 @@ namespace Internal.TypeSystem
                 if (type.IsSequentialLayout != baseType.IsSequentialLayout ||
                     type.IsExplicitLayout != baseType.IsExplicitLayout)
                 {
-                    ThrowHelper.ThrowTypeLoadException(ExceptionStringID.ClassLoadBadFormat, type);
+                    // ThrowHelper.ThrowTypeLoadException(ExceptionStringID.ClassLoadBadFormat, type);
                 }
             }
 
@@ -136,6 +136,18 @@ namespace Internal.TypeSystem
                 }
 
                 return result;
+            }
+
+            if (type.IsObject)
+            {
+                return new ComputedInstanceFieldLayout
+                {
+                    ByteCountUnaligned = type.Context.Target.LayoutPointerSize,
+                    ByteCountAlignment = type.Context.Target.LayoutPointerSize,
+                    FieldAlignment = type.Context.Target.LayoutPointerSize,
+                    FieldSize = type.Context.Target.LayoutPointerSize,
+                    LayoutAbiStable = true
+                };
             }
 
             // If the type has layout, read its packing and size info

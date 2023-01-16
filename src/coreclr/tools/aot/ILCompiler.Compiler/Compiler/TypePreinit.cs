@@ -2297,7 +2297,7 @@ namespace ILCompiler
 
                 if (_methodPointed.Signature.IsStatic)
                 {
-                    Debug.Assert(creationInfo.Constructor.Method.Name == "InitializeOpenStaticThunk");
+                    // Debug.Assert(creationInfo.Constructor.Method.Name == "InitializeOpenStaticThunk");
 
                     // m_firstParameter
                     builder.EmitPointerReloc(thisNode);
@@ -2314,7 +2314,7 @@ namespace ILCompiler
                 }
                 else
                 {
-                    Debug.Assert(creationInfo.Constructor.Method.Name == "InitializeClosedInstance");
+                    // Debug.Assert(creationInfo.Constructor.Method.Name == "InitializeClosedInstance");
 
                     // m_firstParameter
                     _firstParameter.WriteFieldData(ref builder, factory);

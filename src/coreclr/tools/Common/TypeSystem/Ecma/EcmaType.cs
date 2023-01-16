@@ -323,7 +323,7 @@ namespace Internal.TypeSystem.Ecma
             foreach (var handle in _typeDefinition.GetMethods())
             {
                 MethodDefinition methodDef = reader.GetMethodDefinition(handle);
-                if ((methodDef.Attributes & MethodAttributes.Virtual) != 0)
+                if ((methodDef.Attributes & MethodAttributes.Virtual) != 0 && ((methodDef.Attributes & MethodAttributes.Static) == 0))
                     yield return _module.GetMethod(handle, this);
             }
         }

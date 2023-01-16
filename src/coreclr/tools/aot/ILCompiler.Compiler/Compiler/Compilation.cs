@@ -70,7 +70,7 @@ namespace ILCompiler
             PInvokeILProvider = _nodeFactory.InteropStubManager.CreatePInvokeILProvider();
             if (PInvokeILProvider != null)
             {
-                ilProvider = new CombinedILProvider(ilProvider, PInvokeILProvider);
+                // ilProvider = new CombinedILProvider(ilProvider, PInvokeILProvider);
             }
 
             _methodILCache = new ILCache(ilProvider);

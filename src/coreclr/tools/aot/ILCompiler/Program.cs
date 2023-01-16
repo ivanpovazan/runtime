@@ -369,7 +369,7 @@ namespace ILCompiler
                 resBlockingPolicy = new FullyBlockedManifestResourceBlockingPolicy();
             }
 
-            DynamicInvokeThunkGenerationPolicy invokeThunkGenerationPolicy = new DefaultDynamicInvokeThunkGenerationPolicy();
+            DynamicInvokeThunkGenerationPolicy invokeThunkGenerationPolicy = new NoDynamicInvokeThunkGenerationPolicy();
 
             var flowAnnotations = new ILLink.Shared.TrimAnalysis.FlowAnnotations(logger, ilProvider, compilerGeneratedState);
 
@@ -441,6 +441,13 @@ namespace ILCompiler
                 IILScanner scanner = scannerBuilder.ToILScanner();
 
                 ILScanResults scanResults = scanner.Scan();
+
+                foreach (var body in scanResults.CompiledMethodBodies)
+                {
+                    Console.WriteLine(body);
+                }
+
+                Environment.Exit(0);
 
 #if DEBUG
                 scannerCompiledMethods = new List<MethodDesc>(scanResults.CompiledMethodBodies);

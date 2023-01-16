@@ -81,16 +81,16 @@ namespace Internal.IL.Stubs.StartupCode
             MetadataType startup = Context.GetOptionalHelperType("StartupCodeHelpers");
 
             // Initialize command line args if the class library supports this
-            string initArgsName = (Context.Target.OperatingSystem == TargetOS.Windows)
-                                ? "InitializeCommandLineArgsW"
-                                : "InitializeCommandLineArgs";
-            MethodDesc initArgs = startup?.GetMethod(initArgsName, null);
-            if (initArgs != null)
-            {
-                codeStream.Emit(ILOpcode.ldarg_0); // argc
-                codeStream.Emit(ILOpcode.ldarg_1); // argv
-                codeStream.Emit(ILOpcode.call, emitter.NewToken(initArgs));
-            }
+            // string initArgsName = (Context.Target.OperatingSystem == TargetOS.Windows)
+            //                     ? "InitializeCommandLineArgsW"
+            //                     : "InitializeCommandLineArgs";
+            // MethodDesc initArgs = startup?.GetMethod(initArgsName, null);
+            // if (initArgs != null)
+            // {
+            //     codeStream.Emit(ILOpcode.ldarg_0); // argc
+            //     codeStream.Emit(ILOpcode.ldarg_1); // argv
+            //     codeStream.Emit(ILOpcode.call, emitter.NewToken(initArgs));
+            // }
 
             // Initialize the entrypoint assembly if the class library supports this
             MethodDesc initEntryAssembly = startup?.GetMethod("InitializeEntryAssembly", null);
@@ -129,10 +129,11 @@ namespace Internal.IL.Stubs.StartupCode
             if (_mainMethod.Signature.Length > 0)
             {
                 // TODO: better exception
-                if (initArgs == null)
-                    throw new Exception("Main() has parameters, but the class library doesn't support them");
+                // if (initArgs == null)
+                //     throw new Exception("Main() has parameters, but the class library doesn't support them");
 
-                codeStream.Emit(ILOpcode.call, emitter.NewToken(startup.GetKnownMethod("GetMainMethodArguments", null)));
+                // codeStream.Emit(ILOpcode.call, emitter.NewToken(startup.GetKnownMethod("GetMainMethodArguments", null)));
+                codeStream.Emit(ILOpcode.ldnull);
             }
 
             if (Context.Target.IsWindows)

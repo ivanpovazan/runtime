@@ -122,12 +122,12 @@ namespace ILCompiler
                 var importer = new ILImporter(this, method);
                 methodCodeNodeNeedingCode.InitializeDependencies(_nodeFactory, importer.Import());
             }
-            catch (TypeSystemException ex)
+            catch (TypeSystemException)
             {
                 // Try to compile the method again, but with a throwing method body this time.
-                MethodIL throwingIL = TypeSystemThrowingILEmitter.EmitIL(method, ex);
-                var importer = new ILImporter(this, method, throwingIL);
-                methodCodeNodeNeedingCode.InitializeDependencies(_nodeFactory, importer.Import(), ex);
+                // MethodIL throwingIL = TypeSystemThrowingILEmitter.EmitIL(method, ex);
+                // var importer = new ILImporter(this, method, throwingIL);
+                methodCodeNodeNeedingCode.InitializeDependencies(_nodeFactory, Array.Empty<DependencyNodeCore<NodeFactory>.DependencyListEntry>());
             }
             catch (Exception ex)
             {
@@ -146,7 +146,8 @@ namespace ILCompiler
 
         public ISymbolNode GetHelperEntrypoint(ReadyToRunHelper helper)
         {
-            return _helperCache.GetOrCreateValue(helper).Symbol;
+            // return _helperCache.GetOrCreateValue(helper).Symbol;
+            return _nodeFactory.ExternSymbol("NYI");
         }
 
         private sealed class Helper

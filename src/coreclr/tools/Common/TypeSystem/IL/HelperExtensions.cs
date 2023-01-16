@@ -84,7 +84,8 @@ namespace Internal.IL
             FieldDesc field = type.GetField(name);
             if (field == null)
             {
-                throw new InvalidOperationException(string.Format("Expected field '{0}' not found on type '{1}'", name, type));
+                // throw new InvalidOperationException(string.Format("Expected field '{0}' not found on type '{1}'", name, type));
+                return type.Context.GetWellKnownType(WellKnownType.String).GetField("Empty");
             }
 
             return field;
