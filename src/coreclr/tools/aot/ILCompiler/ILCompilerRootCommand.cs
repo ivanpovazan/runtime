@@ -44,6 +44,14 @@ namespace ILCompiler
             new(new[] { "--fulllog" }, "Save detailed log of dependency analysis");
         public Option<string> ScanDgmlLogFileName { get; } =
             new(new[] { "--scandgmllog" }, "Save result of scanner dependency analysis as DGML");
+        public Option<string> ScanMibcLogFileName { get; } =
+            new(new[] { "--scanmibclog" }, "Save result of scanner dependency analysis as MIBC");
+        public Option<bool> ScanMibcLogDump { get; } =
+            new(new[] { "--scanmibclogdump" }, "Dump result of scanner dependency analysis to the console");
+        public Option<string> ScanMibcForAssembly { get; } =
+            new(new[] { "--scanmibcforassembly" }, "Save result of scanner dependency analysis for a specific type");
+        public Option<bool> ScanMibcForAllGenerics { get; } =
+            new(new[] { "--scanmibcforallgenerics" }, "Save result of scanner dependency analysis for all generics");
         public Option<bool> GenerateFullScanDgmlLog { get; } =
             new(new[] { "--scanfulllog" }, "Save detailed log of scanner dependency analysis");
         public Option<bool> IsVerbose { get; } =
@@ -183,6 +191,10 @@ namespace ILCompiler
             AddOption(DgmlLogFileName);
             AddOption(GenerateFullDgmlLog);
             AddOption(ScanDgmlLogFileName);
+            AddOption(ScanMibcLogFileName);
+            AddOption(ScanMibcLogDump);
+            AddOption(ScanMibcForAssembly);
+            AddOption(ScanMibcForAllGenerics);
             AddOption(GenerateFullScanDgmlLog);
             AddOption(IsVerbose);
             AddOption(SystemModuleName);

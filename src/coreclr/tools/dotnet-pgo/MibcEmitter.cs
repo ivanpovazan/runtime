@@ -22,7 +22,6 @@ using System.Reflection.Metadata.Ecma335;
 using System.IO.Compression;
 using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
 using System.Diagnostics.CodeAnalysis;
-using ILCompiler.Reflection.ReadyToRun;
 using Microsoft.Diagnostics.Tools.Pgo;
 using Internal.Pgo;
 using ILCompiler.IBC;
@@ -49,7 +48,7 @@ namespace Microsoft.Diagnostics.Tools.Pgo
             private string _name;
             private TypeSystemMetadataEmitter _emitter;
 
-            public void AddProcessedMethodData(MethodProfileData processedMethodData)
+            public void AddProcessedMethodData(MethodProfileData processedMethodData, Logger logger)
             {
                 MethodDesc method = processedMethodData.Method;
 
@@ -106,7 +105,7 @@ namespace Microsoft.Diagnostics.Tools.Pgo
                 }
                 catch (Exception ex)
                 {
-                    Program.PrintWarning($"Exception {ex} while attempting to generate method lists");
+                    logger.PrintWarning($"Exception {ex} while attempting to generate method lists");
                 }
             }
 
@@ -242,7 +241,7 @@ namespace Microsoft.Diagnostics.Tools.Pgo
             emitter.AddGlobalMethod(nameof(MibcConfig), il, 8);
         }
 
-        public static int GenerateMibcFile(MibcConfig config, TypeSystemContext tsc, FileInfo outputFileName, IEnumerable<MethodProfileData> methodsToAttemptToPlaceIntoProfileData, bool validate, bool uncompressed)
+        public static int GenerateMibcFile(MibcConfig config, TypeSystemContext tsc, FileInfo outputFileName, IEnumerable<MethodProfileData> methodsToAttemptToPlaceIntoProfileData, bool validate, bool uncompressed, Logger logger)
         {
             TypeSystemMetadataEmitter emitter = new TypeSystemMetadataEmitter(new AssemblyName(outputFileName.Name), tsc);
             emitter.InjectSystemPrivateCanon();
@@ -287,7 +286,7 @@ namespace Microsoft.Diagnostics.Tools.Pgo
                     mibcGroup = new MIbcGroup(mibcGroupName, emitter);
                     groups.Add(mibcGroupName, mibcGroup);
                 }
-                mibcGroup.AddProcessedMethodData(entry);
+                mibcGroup.AddProcessedMethodData(entry, logger);
             }
 
             var buffer = new BlobBuilder();
@@ -330,15 +329,15 @@ namespace Microsoft.Diagnostics.Tools.Pgo
                 }
             }
 
-            Program.PrintMessage($"Generated {outputFileName.FullName}");
+            logger.PrintMessage($"Generated {outputFileName.FullName}");
 
             if (validate)
-                return ValidateMIbcData(tsc, outputFileName, peFile.ToArray(), methodsToAttemptToPlaceIntoProfileData);
+                return ValidateMIbcData(tsc, outputFileName, peFile.ToArray(), methodsToAttemptToPlaceIntoProfileData, logger);
             else
                 return 0;
         }
 
-        static int ValidateMIbcData(TypeSystemContext tsc, FileInfo outputFileName, byte[] moduleBytes, IEnumerable<MethodProfileData> methodsToAttemptToPrepare)
+        static int ValidateMIbcData(TypeSystemContext tsc, FileInfo outputFileName, byte[] moduleBytes, IEnumerable<MethodProfileData> methodsToAttemptToPrepare, Logger logger)
         {
             var peReader = new System.Reflection.PortableExecutable.PEReader(System.Collections.Immutable.ImmutableArray.Create<byte>(moduleBytes));
             var profileData = MIbcProfileParser.ParseMIbcFile(tsc, peReader, null, null);
@@ -352,7 +351,7 @@ namespace Microsoft.Diagnostics.Tools.Pgo
             bool failure = false;
             if (methodsToAttemptToPrepare.Count() != mibcDict.Count)
             {
-                Program.PrintError($"Not same count of methods {methodsToAttemptToPrepare.Count()} != {mibcDict.Count}");
+                logger.PrintError($"Not same count of methods {methodsToAttemptToPrepare.Count()} != {mibcDict.Count}");
                 failure = true;
             }
 
@@ -361,7 +360,7 @@ namespace Microsoft.Diagnostics.Tools.Pgo
                 MethodDesc method = entry.Method;
                 if (!mibcDict.ContainsKey(method))
                 {
-                    Program.PrintError($"{method} not found in mibcEntryData");
+                    logger.PrintError($"{method} not found in mibcEntryData");
                     failure = true;
                     continue;
                 }
@@ -373,7 +372,7 @@ namespace Microsoft.Diagnostics.Tools.Pgo
             }
             else
             {
-                Program.PrintMessage($"Validated {outputFileName.FullName}");
+                logger.PrintMessage($"Validated {outputFileName.FullName}");
                 return 0;
             }
         }

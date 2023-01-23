@@ -4,7 +4,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <OutputType>Exe</OutputType>
     <TargetFramework>$(NetCoreAppToolCurrent)</TargetFramework>
-    <NoWarn>8002,NU1701</NoWarn>
+    <NoWarn>8002,NU1701,SA1400,CA1805,SA1028,CA1852,CA1822</NoWarn>
     <Platforms>x64;x86</Platforms>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -90,10 +90,14 @@
     <Compile Include="..\..\Common\CommandLineHelpers.cs" Link="CommandLineHelpers.cs" />
     <Compile Include="..\..\Common\InstructionSetHelpers.cs" Link="InstructionSetHelpers.cs" />
     <Compile Include="..\..\Common\TypeSystem\IL\HelperExtensions.cs" Link="HelperExtensions.cs" />
+    <Compile Include="..\..\Common\TypeSystem\MetadataEmitter\TypeSystemMetadataEmitter.cs" Link="TypeSystemMetadataEmitter" />
+    <Compile Include="..\..\dotnet-pgo\MibcEmitter.cs" Link="MibcEmitter.cs" />
+    <Compile Include="..\..\dotnet-pgo\Logger.cs" Link="Logger.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="$(SystemCommandLineVersion)" />
+    <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="$(TraceEventVersion)" />
   </ItemGroup>
 
   <ItemGroup>

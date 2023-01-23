@@ -423,6 +423,66 @@ namespace ILCompiler
                 RunScanner();
             }
 
+            void EmitScanResultsInMibcFormat(string outputFileName, ILScanResults scanResults)
+            {
+                try
+                {
+                    var outputFileInfo = new FileInfo(outputFileName);
+                    var methodProfileData = new List<MethodProfileData>();
+                    var filterAssembly = Get(_command.ScanMibcForAssembly);
+                    var filterByAssembly = !string.IsNullOrEmpty(filterAssembly);
+                    var filterGenerics = Get(_command.ScanMibcForAllGenerics);
+
+                    foreach (var methodDesc in scanResults.CompiledMethodBodies)
+                    {
+                        var currentMethodIsGeneric = methodDesc.OwningType.HasInstantiation;
+                        var currentMethodIsFromDesiredAssembly = methodDesc.OwningType.ToString().StartsWith($"[{filterAssembly}]{filterAssembly}");
+
+                        if (filterByAssembly && filterGenerics)
+                        {
+                            if (currentMethodIsFromDesiredAssembly && currentMethodIsGeneric)
+                                methodProfileData.Add(new MethodProfileData(methodDesc, ILCompiler.MethodProfilingDataFlags.ReadMethodCode, 0, null, 0xFFFFFFFF, null));
+                        }
+                        else if (filterByAssembly && !filterGenerics)
+                        {
+                            if (currentMethodIsFromDesiredAssembly)
+                                methodProfileData.Add(new MethodProfileData(methodDesc, ILCompiler.MethodProfilingDataFlags.ReadMethodCode, 0, null, 0xFFFFFFFF, null));
+                        }
+                        else if (!filterByAssembly && filterGenerics)
+                        {
+                            if (currentMethodIsGeneric)
+                                methodProfileData.Add(new MethodProfileData(methodDesc, ILCompiler.MethodProfilingDataFlags.ReadMethodCode, 0, null, 0xFFFFFFFF, null));
+                        }
+                        else
+                        {
+                            methodProfileData.Add(new MethodProfileData(methodDesc, ILCompiler.MethodProfilingDataFlags.ReadMethodCode, 0, null, 0xFFFFFFFF, null));
+                        }
+
+                        if (Get(_command.ScanMibcLogDump))
+                        {
+                            Console.WriteLine(methodDesc);
+                        }
+                    }
+
+                    int success = Microsoft.Diagnostics.Tools.Pgo.MibcEmitter.GenerateMibcFile(
+                        config: null,
+                        tsc: typeSystemContext,
+                        outputFileName: outputFileInfo,
+                        methodsToAttemptToPlaceIntoProfileData: methodProfileData,
+                        validate: true,
+                        uncompressed: true,
+                        logger: new Microsoft.Diagnostics.Tools.Pgo.Logger());
+
+                    if (success != 0)
+                        throw new Exception($"Creating MibcFile finished with error code: {success}");
+                }
+                catch (Exception e)
+                {
+                    // TODO: just log why writing to mibc failed
+                    Console.WriteLine($"[ERROR] {e}");
+                }
+            }
+
             [MethodImpl(MethodImplOptions.NoInlining)]
             void RunScanner()
             {
@@ -442,12 +502,12 @@ namespace ILCompiler
 
                 ILScanResults scanResults = scanner.Scan();
 
-                foreach (var body in scanResults.CompiledMethodBodies)
+                string scanMibcLogFileName = Get(_command.ScanMibcLogFileName);
+                if (!string.IsNullOrEmpty(scanMibcLogFileName))
                 {
-                    Console.WriteLine(body);
+                    EmitScanResultsInMibcFormat(scanMibcLogFileName, scanResults);
+                    Environment.Exit(0); // do not proceed with processing
                 }
-
-                Environment.Exit(0);
 
 #if DEBUG
                 scannerCompiledMethods = new List<MethodDesc>(scanResults.CompiledMethodBodies);

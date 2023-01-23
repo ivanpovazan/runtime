@@ -438,7 +438,7 @@ namespace Microsoft.Diagnostics.Tools.Pgo
 
                 MibcConfig mergedConfig = ParseMibcConfigsAndMerge(tsc, mibcReaders);
                 var outputFileInfo = new FileInfo(outputPath);
-                int result = MibcEmitter.GenerateMibcFile(mergedConfig, tsc, outputFileInfo, mergedProfileData.Values, _command.ValidateOutputFile, !Get(_command.Compressed));
+                int result = MibcEmitter.GenerateMibcFile(mergedConfig, tsc, outputFileInfo, mergedProfileData.Values, _command.ValidateOutputFile, !Get(_command.Compressed), s_logger);
                 if (result == 0 && Get(_command.InheritTimestamp))
                 {
                     outputFileInfo.CreationTimeUtc = paths.Max(f => new FileInfo(f).CreationTimeUtc);
@@ -1784,7 +1784,7 @@ namespace Microsoft.Diagnostics.Tools.Pgo
                         ProcessedMethodData processedData = methodsUsedInProcess[i];
                         methodProfileData[i] = new ILCompiler.MethodProfileData(processedData.Method, ILCompiler.MethodProfilingDataFlags.ReadMethodCode, processedData.ExclusiveWeight, processedData.WeightedCallData, 0xFFFFFFFF, processedData.InstrumentationData);
                     }
-                    return MibcEmitter.GenerateMibcFile(config, tsc, outputFileInfo, methodProfileData, _command.ValidateOutputFile, !Get(_command.Compressed));
+                    return MibcEmitter.GenerateMibcFile(config, tsc, outputFileInfo, methodProfileData, _command.ValidateOutputFile, !Get(_command.Compressed), s_logger);
                 }
             }
             return 0;
