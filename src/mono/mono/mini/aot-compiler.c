@@ -4617,6 +4617,15 @@ mono_aot_can_specialize (MonoMethod *method)
 	if ((method->flags & METHOD_ATTRIBUTE_MEMBER_ACCESS_MASK) != METHOD_ATTRIBUTE_PRIVATE)
 		return FALSE;
 
+	if (method->is_inflated)
+		return FALSE;
+
+	if (!strcmp (method->name, ".cctor"))
+		return FALSE;
+
+	if (!strcmp (method->name, "<Main>"))
+		return FALSE;
+
 #if 0
 	// If it has the attribute disabling the specialization, we can't specialize
 	//
@@ -10773,6 +10782,7 @@ emit_code (MonoAotCompile *acfg)
 				if (!mono_aot_can_specialize(acfg->cfgs [i]->method)) {
 					arch_emit_label_address (acfg, acfg->cfgs [i]->asm_symbol, FALSE, acfg->thumb_mixed && acfg->cfgs [i]->compile_llvm, NULL, &acfg->call_table_entry_size);
 				} else {
+					printf ("NO_METHOD_ADDRESS_ENTRY: %s\n", mono_method_get_full_name (acfg->cfgs [i]->method));
 					arch_emit_label_address (acfg, symbol, FALSE, FALSE, NULL, &acfg->call_table_entry_size);
 				}
 			} else {

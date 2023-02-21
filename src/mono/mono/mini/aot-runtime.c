@@ -4205,7 +4205,7 @@ load_method (MonoAotModule *amodule, MonoImage *image, MonoMethod *method, guint
 					return NULL;
 			}
 
-			printf ("NOT FOUND: %s\n", mono_method_get_full_name (method));
+			mono_trace (G_LOG_LEVEL_DEBUG, MONO_TRACE_AOT, "AOT: NOT FOUND: %s.", mono_method_get_full_name (method));
 			exit (1);
 
 			if (mono_trace_is_traced (G_LOG_LEVEL_DEBUG, MONO_TRACE_AOT)) {

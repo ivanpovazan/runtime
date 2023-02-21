@@ -94,6 +94,7 @@
         EnableAppSandbox="$(EnableAppSandbox)"
         DiagnosticPorts="$(DiagnosticPorts)"
         StripSymbolTable="$(StripDebugSymbols)"
+        EnableRuntimeLogging="true"
         AppDir="$(MSBuildThisFileDirectory)$(PublishDir)">
         <Output TaskParameter="AppBundlePath" PropertyName="AppBundlePath" />
         <Output TaskParameter="XcodeProjectPath" PropertyName="XcodeProjectPath" />
