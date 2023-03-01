@@ -20,7 +20,7 @@ publish:
 	/p:RunAOTCompilation=$(AOT) \
 	'/p:NetTracePath="$(NET_TRACE_PATH)"' \
 	'/p:PgoBinaryPath="$(PGO_BINARY_PATH)"' \
-	'/p:MibcProfilePath="$(MIBC_PROFILE_PATH)"'
+	'/p:MibcProfilePath="$(MIBC_PROFILE_PATH)"' -bl
 
 run: publish
 	DOTNET_DebugWriteToStdErr=1 \

@@ -252,6 +252,7 @@ typedef struct MonoAotOptions {
 	gboolean use_current_cpu;
 	gboolean dump_json;
 	gboolean profile_only;
+	gboolean profile_lookup;
 	gboolean no_opt;
 	char *clangxx;
 	char *depfile;
@@ -4284,6 +4285,9 @@ get_method_index (MonoAotCompile *acfg, MonoMethod *method)
 }
 
 static int
+find_mibc_profile_methods (MonoAotCompile *acfg, char *filename, MonoMethod *lookup_method);
+
+static int
 add_method_full (MonoAotCompile *acfg, MonoMethod *method, gboolean extra, int depth)
 {
 	int index;
@@ -5775,7 +5779,16 @@ add_generic_instances (MonoAotCompile *acfg)
 	if (acfg->aot_opts.no_instances)
 		return;
 
-	int rows = table_info_get_rows (&acfg->image->tables [MONO_TABLE_METHODSPEC]);
+	MonoImageOpenStatus status = MONO_IMAGE_OK;
+	MonoImageOpenOptions options = {0, };
+	options.not_executable = 1;
+	MonoImage *image = mono_image_open_a_lot (mono_alc_get_default (), (char*)acfg->aot_opts.mibc_profile_files->data, &status, &options);
+	g_assert (image != NULL);
+	g_assert (status == MONO_IMAGE_OK);
+
+	ERROR_DECL (error);
+
+	int rows = table_info_get_rows (&image->tables [MONO_TABLE_METHODSPEC]);
 	for (int i = 0; i < rows; ++i) {
 		ERROR_DECL (error);
 		token = MONO_TOKEN_METHOD_SPEC | (i + 1);
@@ -5883,14 +5896,14 @@ add_generic_instances (MonoAotCompile *acfg)
 		add_extra_method (acfg, method);
 	}
 
-	rows = table_info_get_rows (&acfg->image->tables [MONO_TABLE_TYPESPEC]);
+	rows = table_info_get_rows (&image->tables [MONO_TABLE_TYPESPEC]);
 	for (int i = 0; i < rows; ++i) {
 		ERROR_DECL (error);
 		MonoClass *klass;
 
 		token = MONO_TOKEN_TYPE_SPEC | (i + 1);
 
-		klass = mono_class_get_checked (acfg->image, token, error);
+		klass = mono_class_get_checked (image, token, error);
 		if (!klass || m_class_get_rank (klass)) {
 			mono_error_cleanup (error);
 			continue;
@@ -8727,6 +8740,8 @@ mono_aot_parse_options (const char *aot_options, MonoAotOptions *opts)
 			opts->profile_files = g_list_append (opts->profile_files, g_strdup (arg + strlen ("profile=")));
 		} else if (!strcmp (arg, "profile-only")) {
 			opts->profile_only = TRUE;
+		} else if (!strcmp (arg, "profile-lookup")) {
+			opts->profile_lookup = TRUE;
 		} else if (str_begins_with (arg, "mibc-profile=")) {
 			opts->mibc_profile_files = g_list_append (opts->mibc_profile_files, g_strdup (arg + strlen ("mibc-profile=")));
 		} else if (!strcmp (arg, "verbose")) {
@@ -12703,6 +12718,23 @@ should_emit_extra_method_for_generics (MonoMethod *method, gboolean reference_ty
 }
 
 static gboolean
+find_in_mibc_profiles(MonoAotCompile *acfg, MonoMethod *lookup_method)
+{
+	char *method_name = mono_method_full_name(lookup_method, TRUE);
+	aot_printf(acfg, "--> MIBC_METHOD_LOOKUP: Looking up method '%s' with token: [0x%08x]: in mibc profile\n", method_name, lookup_method->token);
+	for (GList *l = acfg->aot_opts.mibc_profile_files; l; l = l->next) {
+		if (find_mibc_profile_methods (acfg, (char*)l->data, lookup_method)) {
+			aot_printf(acfg, "<-- MIBC_METHOD_LOOKUP: '%s' FOUND in profile\n", method_name);
+			return TRUE;
+		} else {
+			aot_printf(acfg, "<-- MIBC_METHOD_LOOKUP: '%s' NOT FOUND in profile\n", method_name);
+		}
+	}
+	g_free (method_name);
+	return FALSE;
+}
+
+static gboolean
 should_emit_gsharedvt_method (MonoAotCompile *acfg, MonoMethod *method)
 {
 #ifdef TARGET_WASM
@@ -12713,7 +12745,11 @@ should_emit_gsharedvt_method (MonoAotCompile *acfg, MonoMethod *method)
 	if (acfg->image == mono_get_corlib () && !strcmp (m_class_get_name (method->klass), "Volatile"))
 		/* Read<T>/Write<T> are not needed and cause JIT failures */
 		return FALSE;
-	return should_emit_extra_method_for_generics (method, FALSE);
+
+	if (acfg->aot_opts.profile_lookup && find_in_mibc_profiles(acfg, method))
+		return FALSE;
+	else
+		return should_emit_extra_method_for_generics (method, FALSE);
 }
 
 static gboolean
@@ -13701,6 +13737,51 @@ add_mibc_group_method_methods (MonoAotCompile *acfg, MonoMethod *mibcGroupMethod
 	return count;
 }
 
+
+static int
+find_mibc_group_method_methods (MonoAotCompile *acfg, MonoMethod *mibcGroupMethod, MonoImage *image, MonoClass *mibcModuleClass, MonoGenericContext *context, MonoMethod *lookup_method)
+{
+	ERROR_DECL (error);
+
+	MonoMethodHeader *mibcGroupMethodHeader = mono_method_get_header_internal (mibcGroupMethod, error);
+	mono_error_assert_ok (error);
+
+	MibcGroupMethodEntryState state = FIND_METHOD_TYPE_ENTRY_START;
+	const unsigned char *cur = mibcGroupMethodHeader->code;
+	const unsigned char *end = mibcGroupMethodHeader->code + mibcGroupMethodHeader->code_size;
+	while (cur < end) {
+		MonoOpcodeEnum il_op;
+		const int op_size = mono_opcode_value_and_size (&cur, end, &il_op);
+
+		if (state == FIND_METHOD_TYPE_ENTRY_END) {
+			if (il_op == MONO_CEE_POP)
+				state = FIND_METHOD_TYPE_ENTRY_START;
+			cur += op_size;
+			continue;
+		}
+		g_assert (il_op == MONO_CEE_LDTOKEN);
+		state = FIND_METHOD_TYPE_ENTRY_END;
+
+		g_assert (cur + 4 < end); // Assert that there is atleast a 32 bit token before the end
+		guint32 mibcGroupMethodEntryToken = read32 (cur + 1);
+		g_assertf ((mono_metadata_token_table (mibcGroupMethodEntryToken) == MONO_TABLE_MEMBERREF || mono_metadata_token_table (mibcGroupMethodEntryToken) == MONO_TABLE_METHODSPEC), "token '%x' is not MemberRef or MethodSpec.\n", mibcGroupMethodEntryToken);
+		cur += op_size;
+
+		// Skip methods in the profile that are not found
+		ERROR_DECL(method_entry_error);
+		MonoMethod *methodEntry = mono_get_method_checked (image, mibcGroupMethodEntryToken, lookup_method->klass, context, method_entry_error);
+		if (!is_ok (method_entry_error)) {
+			mono_error_cleanup (method_entry_error);
+			continue;
+		} else {
+			aot_printf(acfg, "Looking up method: '%s' with token: [0x%08x], current token reference: [0x%08x] -> references method: '%s' with token: [0x%08x]\n", mono_method_full_name(lookup_method, TRUE), lookup_method->token, mibcGroupMethodEntryToken, mono_method_full_name(methodEntry, TRUE), methodEntry->token);
+			if (methodEntry->token == lookup_method->token && m_class_get_image (methodEntry->klass) == m_class_get_image (lookup_method->klass))
+				return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 typedef enum {
 	PARSING_MIBC_CONFIG_NONE,
 	PARSING_MIBC_CONFIG_RUNTIME_FIELD,
@@ -13881,6 +13962,60 @@ add_mibc_profile_methods (MonoAotCompile *acfg, char *filename)
 	}
 
 	printf ("Added %d methods from mibc profile.\n", count);
+}
+
+static gboolean
+find_mibc_profile_methods (MonoAotCompile *acfg, char *filename, MonoMethod *lookup_method)
+{
+	MonoImageOpenStatus status = MONO_IMAGE_OK;
+	MonoImageOpenOptions options = {0, };
+	options.not_executable = 1;
+	MonoImage *image = mono_image_open_a_lot (mono_alc_get_default (), filename, &status, &options);
+	g_assert (image != NULL);
+	g_assert (status == MONO_IMAGE_OK);
+
+	ERROR_DECL (error);
+
+	MonoClass *mibcModuleClass = mono_class_from_name_checked (image, "", "<Module>", error);
+	mono_error_assert_ok (error);
+
+	if (!compatible_mibc_profile_config (image, mibcModuleClass)) {
+		aot_printf (acfg, "Skipping .mibc profile '%s' as it is not compatible with the mono runtime. The MibcConfig within the .mibc does not record the Runtime flavor 'Mono'.\n", filename);
+		return FALSE;
+	}
+
+	MonoMethod *assemblyDictionary = mono_class_get_method_from_name_checked (mibcModuleClass, "AssemblyDictionary", 0, 0, error);
+	MonoGenericContext *context = mono_method_get_context (assemblyDictionary);
+	mono_error_assert_ok (error);
+
+	MonoMethodHeader *header = mono_method_get_header_internal (assemblyDictionary, error);
+	mono_error_assert_ok (error);
+
+	const unsigned char *cur = header->code;
+	const unsigned char *end = header->code + header->code_size;
+	while (cur < end) {
+		MonoOpcodeEnum il_op;
+		const int op_size = mono_opcode_value_and_size (&cur, end, &il_op);
+
+		// we only care about args of ldtoken's, which are 32bits/4bytes
+		// ldtoken arg is cur + 1
+		if (il_op != MONO_CEE_LDTOKEN) {
+			cur += op_size;
+			continue;
+		}
+
+		g_assert (cur + 4 < end); // Assert that there is atleast a 32 bit token before the end
+		guint32 token = read32 (cur + 1);
+		cur += op_size;
+
+		MonoMethod *mibcGroupMethod = mono_get_method_checked (image, token, mibcModuleClass, context, error);
+		mono_error_assert_ok (error);
+
+		if (find_mibc_group_method_methods (acfg, mibcGroupMethod, image, mibcModuleClass, context, lookup_method))
+			return TRUE;
+	}
+
+	return FALSE;
 }
 
 static void
@@ -14881,7 +15016,8 @@ aot_assembly (MonoAssembly *ass, guint32 jit_opts, MonoAotOptions *aot_options)
 			add_profile_instances (acfg, (ProfileData*)l->data);
 	}
 
-	if (acfg->aot_opts.mibc_profile_files) {
+	// Do not add methods from the profile in lookup mode
+	if (!acfg->aot_opts.profile_lookup && acfg->aot_opts.mibc_profile_files) {
 		GList *l;
 
 		for (l = acfg->aot_opts.mibc_profile_files; l; l = l->next) {

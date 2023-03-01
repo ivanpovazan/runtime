@@ -4,6 +4,15 @@
     <TargetFramework>$(NetCoreAppCurrent)</TargetFramework>
   </PropertyGroup>
 
+    <PropertyGroup>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>Link</TrimMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IP_Values\IP_Values.csproj" />
+  </ItemGroup>
+
   <UsingTask TaskName="MonoAOTCompiler"
              AssemblyFile="$(MonoAOTCompilerTasksAssemblyPath)" />
 
