@@ -1,0 +1,8 @@
+<linker>
+  <!-- The ILCompiler workarounds use System.Delegate::Clone -->
+  <assembly fullname="System.Private.CoreLib">
+    <type fullname="System.Delegate">
+        <method name="Clone" />
+    </type>
+  </assembly>
+</linker>

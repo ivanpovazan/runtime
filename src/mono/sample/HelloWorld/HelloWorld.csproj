@@ -4,6 +4,15 @@
     <TargetFramework>$(NetCoreAppCurrent)</TargetFramework>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>Link</TrimMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+     <TrimmerRootDescriptor Include="$(MSBuildProjectDirectory)/ILLink.Descriptors.xml" />
+  </ItemGroup>
+
   <UsingTask TaskName="MonoAOTCompiler"
              AssemblyFile="$(MonoAOTCompilerTasksAssemblyPath)" />
 
