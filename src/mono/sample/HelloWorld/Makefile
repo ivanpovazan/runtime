@@ -1,4 +1,5 @@
 TOP=../../../../
+TOOLS_DIR=../../../tasks
 DOTNET:=$(TOP)dotnet.sh
 DOTNET_Q_ARGS=--nologo -v:q -consoleloggerparameters:NoSummary
 
@@ -13,14 +14,18 @@ AOT?=false
 
 MONO_ENV_OPTIONS ?=
 
-publish:
+monoaottask:
+	$(DOTNET) build -c Debug $(TOOLS_DIR)/AotCompilerTask/MonoAOTCompiler.csproj
+
+publish: clean monoaottask
 	$(DOTNET) publish \
 	-c $(MONO_CONFIG) \
 	-r $(TARGET_OS)-$(MONO_ARCH) \
 	/p:RunAOTCompilation=$(AOT) \
 	'/p:NetTracePath="$(NET_TRACE_PATH)"' \
 	'/p:PgoBinaryPath="$(PGO_BINARY_PATH)"' \
-	'/p:MibcProfilePath="$(MIBC_PROFILE_PATH)"'
+	'/p:MibcProfilePath="$(MIBC_PROFILE_PATH)"' \
+	-bl
 
 run: publish
 	DOTNET_DebugWriteToStdErr=1 \
@@ -29,3 +34,4 @@ run: publish
 
 clean:
 	rm -rf $(TOP)artifacts/bin/HelloWorld/
+	rm -rf $(TOP)artifacts/obj/mono/HelloWorld/

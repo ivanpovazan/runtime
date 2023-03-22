@@ -163,6 +163,11 @@ public class MonoAOTCompiler : Microsoft.Build.Utilities.Task
     public string[] MibcProfilePath { get; set; } = Array.Empty<string>();
 
     /// <summary>
+    /// Configure if only the methods from mibc profile should be AOT compiled.
+    /// </summary>
+    public bool MibcProfileOnly { get; set; }
+
+    /// <summary>
     /// List of profilers to use.
     /// </summary>
     public string[]? Profilers { get; set; }
@@ -854,7 +859,8 @@ public class MonoAOTCompiler : Microsoft.Build.Utilities.Task
 
         if (MibcProfilePath.Length > 0)
         {
-            aotArgs.Add("profile-only");
+            if (MibcProfileOnly)
+                aotArgs.Add("profile-only");
             foreach (var path in MibcProfilePath)
             {
                 aotArgs.Add($"mibc-profile={path}");
