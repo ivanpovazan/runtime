@@ -5,15 +5,47 @@ using System;
 
 namespace HelloWorld
 {
-    internal class Program
+        internal class Program
     {
         private static void Main(string[] args)
         {
-            bool isMono = typeof(object).Assembly.GetType("Mono.RuntimeStructs") != null;
-            Console.WriteLine($"Hello World {(isMono ? "from Mono!" : "from CoreCLR!")}");
-            Console.WriteLine(typeof(object).Assembly.FullName);
-            Console.WriteLine(System.Reflection.Assembly.GetEntryAssembly ());
-            Console.WriteLine(System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
+            Console.WriteLine($"Hello");
+            CallbackManager cm = new();
+            var mgt1 = new MyGenType<byte>();
+            mgt1.Signup(cm);
+            cm.Invoke(mgt1);
+        }
+    }
+
+    public class MyGenType<T>
+    {
+        public string TypeToString()
+        {
+            if (typeof(T) == typeof(byte))
+                return "BYTE";
+            else
+                return "UNSUPPORTED";
+        }
+
+        public void Signup(CallbackManager cm)
+        {
+            cm.Register(c => ((MyGenType<T>)c).TypeToString());
+        }
+    }
+
+    public class CallbackManager
+    {
+        private Func<object, string> _cb;
+        public void Register(Func<object, string> cb)
+        {
+            _cb = cb;
+        }
+        public void Invoke(object param)
+        {
+            if (_cb == null)
+                Console.WriteLine("No registered callback");
+            else
+                Console.WriteLine($"Invoking callback: {_cb(param)}");
         }
     }
 }
