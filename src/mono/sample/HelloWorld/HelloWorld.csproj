@@ -4,32 +4,46 @@
     <TargetFramework>$(NetCoreAppCurrent)</TargetFramework>
   </PropertyGroup>
 
-  <PropertyGroup>
+  <PropertyGroup Condition="'$(RunAOTCompilation)' == 'true' or '$(RunIlcDependencyAnalysis)' == 'true'">
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>Link</TrimMode>
+    <AOTMode>Full</AOTMode>
+    <RunILCScanner Condition="'$(RunIlcDependencyAnalysis)' == 'true'">RunILCScanner</RunILCScanner>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(RunAOTCompilation)' == 'true' and '$(RunIlcDependencyAnalysis)' == 'true'">
      <TrimmerRootDescriptor Include="$(MSBuildProjectDirectory)/ILLink.Descriptors.xml" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <AOTCompileAppDependsOn>
+      SetupAOTProperties;
+      $(RunILCScanner);
+    </AOTCompileAppDependsOn>
+  </PropertyGroup>
 
   <UsingTask TaskName="MonoAOTCompiler"
              AssemblyFile="$(MonoAOTCompilerTasksAssemblyPath)" />
 
-  <Target Name="AOTCompileApp" Condition="'$(RunAOTCompilation)' == 'true'" AfterTargets="CopyFilesToPublishDirectory">
+  <Target Name="SetupAOTProperties">
     <PropertyGroup>
       <_AotOutputType>Library</_AotOutputType>
       <_AotLibraryFormat>Dylib</_AotLibraryFormat>
       <UseAotDataFile>false</UseAotDataFile>
-      <!-- ilc properties -->
+    </PropertyGroup>
+
+    <ItemGroup>
+      <AotInputAssemblies Include="$(PublishDir)\*.dll" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="RunILCScanner" DependsOnTargets="$(SetupAOTProperties)">
+    <PropertyGroup>
       <IlcResponseFile>$(IntermediateOutputPath)\ilc-compile-with-$(Configuration)-libs.rsp</IlcResponseFile>
       <IlcMibcFile>$(IntermediateOutputPath)\$(AssemblyName).mibc</IlcMibcFile>
     </PropertyGroup>
 
     <ItemGroup>
-      <AotInputAssemblies Include="$(PublishDir)\*.dll" />
-      <ReferenceAssembliesForPGO Include="$(PublishDir)\*.dll" />
-      <!-- ilc items -->
       <ReproResponseLines Include="$(PublishDir)$(AssemblyName)$(TargetExt)" />
       <ReproResponseLines Include="-o:dummy.obj" />
       <ReproResponseLines Include="@(AotInputAssemblies->'-r:%(Identity)')" />
@@ -42,12 +56,14 @@
     </ItemGroup>
 
     <WriteLinesToFile File="$(IlcResponseFile)"
-                      Lines="@(ReproResponseLines)"
-                      Overwrite="true"
-                      WriteOnlyWhenDifferent="true" />
+                  Lines="@(ReproResponseLines)"
+                  Overwrite="true"
+                  WriteOnlyWhenDifferent="true" />
 
     <Exec Command="&quot;$(CoreCLRILCompilerDir)\ilc&quot; @&quot;$(IlcResponseFile)&quot;" />
+  </Target>
 
+  <Target Name="AOTCompileApp" Condition="'$(RunAOTCompilation)' == 'true'" DependsOnTargets="$(AOTCompileAppDependsOn)" AfterTargets="CopyFilesToPublishDirectory">
     <MonoAOTCompiler
       CompilerBinaryPath="@(MonoAotCrossCompiler->WithMetadataValue('RuntimeIdentifier','$(TargetOS)-$(TargetArchitecture.ToLowerInvariant())'))"
       OutputType="$(_AotOutputType)"
@@ -57,6 +73,7 @@
       IntermediateOutputPath="$(IntermediateOutputPath)"
       UseAotDataFile="$(UseAotDataFile)"
       CacheFilePath="$(IntermediateOutputPath)aot_compiler_cache.json"
+      Mode="$(AOTMode)"
       MibcProfilePath="$(IlcMibcFile)"
       MibcProfileOnly="false">
       <Output TaskParameter="CompiledAssemblies" ItemName="BundleAssemblies" />
