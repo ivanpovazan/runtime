@@ -21,12 +21,32 @@
       <_AotOutputType>Library</_AotOutputType>
       <_AotLibraryFormat>Dylib</_AotLibraryFormat>
       <UseAotDataFile>false</UseAotDataFile>
+      <!-- ilc properties -->
+      <IlcResponseFile>$(IntermediateOutputPath)\ilc-compile-with-$(Configuration)-libs.rsp</IlcResponseFile>
+      <IlcMibcFile>$(IntermediateOutputPath)\$(AssemblyName).mibc</IlcMibcFile>
     </PropertyGroup>
 
     <ItemGroup>
       <AotInputAssemblies Include="$(PublishDir)\*.dll" />
       <ReferenceAssembliesForPGO Include="$(PublishDir)\*.dll" />
+      <!-- ilc items -->
+      <ReproResponseLines Include="$(PublishDir)$(AssemblyName)$(TargetExt)" />
+      <ReproResponseLines Include="-o:dummy.obj" />
+      <ReproResponseLines Include="@(AotInputAssemblies->'-r:%(Identity)')" />
+      <ReproResponseLines Include="--root:$(AssemblyName)" />
+      <ReproResponseLines Include="--scan" />
+      <ReproResponseLines Include="--scanmibclog:$(IlcMibcFile)" />
+      <ReproResponseLines Include="--scanmibcforassembly:$(AssemblyName)" />
+      <ReproResponseLines Include="#--scanmibcforallgenerics" />
+      <ReproResponseLines Include="#--scanmibclogdump" />
     </ItemGroup>
+
+    <WriteLinesToFile File="$(IlcResponseFile)"
+                      Lines="@(ReproResponseLines)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+
+    <Exec Command="&quot;$(CoreCLRILCompilerDir)\ilc&quot; @&quot;$(IlcResponseFile)&quot;" />
 
     <MonoAOTCompiler
       CompilerBinaryPath="@(MonoAotCrossCompiler->WithMetadataValue('RuntimeIdentifier','$(TargetOS)-$(TargetArchitecture.ToLowerInvariant())'))"
@@ -37,10 +57,8 @@
       IntermediateOutputPath="$(IntermediateOutputPath)"
       UseAotDataFile="$(UseAotDataFile)"
       CacheFilePath="$(IntermediateOutputPath)aot_compiler_cache.json"
-      NetTracePath="$(NetTracePath)"
-      PgoBinaryPath="$(PgoBinaryPath)"
-      ReferenceAssembliesForPGO="@(ReferenceAssembliesForPGO)"
-      MibcProfilePath="$(MibcProfilePath)">
+      MibcProfilePath="$(IlcMibcFile)"
+      MibcProfileOnly="false">
       <Output TaskParameter="CompiledAssemblies" ItemName="BundleAssemblies" />
     </MonoAOTCompiler>
   </Target>
