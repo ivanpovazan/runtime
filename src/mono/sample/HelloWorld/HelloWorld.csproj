@@ -47,11 +47,11 @@
       <ReproResponseLines Include="$(PublishDir)$(AssemblyName)$(TargetExt)" />
       <ReproResponseLines Include="-o:dummy.obj" />
       <ReproResponseLines Include="@(AotInputAssemblies->'-r:%(Identity)')" />
-      <ReproResponseLines Include="--root:$(AssemblyName)" />
+      <ReproResponseLines Include="@(AotInputAssemblies->'--root:%(Identity)')" />
       <ReproResponseLines Include="--scan" />
       <ReproResponseLines Include="--scanmibclog:$(IlcMibcFile)" />
       <ReproResponseLines Include="--scanmibcforassembly:$(AssemblyName)" />
-      <ReproResponseLines Include="#--scanmibcforallgenerics" />
+      <ReproResponseLines Include="--scanmibcforallgenerics" />
       <ReproResponseLines Include="#--scanmibclogdump" />
     </ItemGroup>
 
@@ -60,7 +60,7 @@
                   Overwrite="true"
                   WriteOnlyWhenDifferent="true" />
 
-    <Exec Command="&quot;$(CoreCLRILCompilerDir)\ilc&quot; @&quot;$(IlcResponseFile)&quot;" />
+    <Exec Command="&quot;$(CoreCLRILCompilerDir)\ilc&quot; @&quot;$(IlcResponseFile)&quot;" ContinueOnError="WarnAndContinue" />
   </Target>
 
   <Target Name="AOTCompileApp" Condition="'$(RunAOTCompilation)' == 'true'" DependsOnTargets="$(AOTCompileAppDependsOn)" AfterTargets="CopyFilesToPublishDirectory">
