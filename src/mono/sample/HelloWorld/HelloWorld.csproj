@@ -40,7 +40,8 @@
   <Target Name="RunILCScanner" DependsOnTargets="$(SetupAOTProperties)">
     <PropertyGroup>
       <IlcResponseFile>$(IntermediateOutputPath)\ilc-compile-with-$(Configuration)-libs.rsp</IlcResponseFile>
-      <IlcMibcFile>$(IntermediateOutputPath)\$(AssemblyName).mibc</IlcMibcFile>
+      <IlcScanMibcFile>$(IntermediateOutputPath)\$(AssemblyName).mibc</IlcScanMibcFile>
+      <IlcScanDgmlFile>$(IntermediateOutputPath)\$(AssemblyName).dgml</IlcScanDgmlFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -49,10 +50,12 @@
       <ReproResponseLines Include="@(AotInputAssemblies->'-r:%(Identity)')" />
       <ReproResponseLines Include="@(AotInputAssemblies->'--root:%(Identity)')" />
       <ReproResponseLines Include="--scan" />
-      <ReproResponseLines Include="--scanmibclog:$(IlcMibcFile)" />
-      <ReproResponseLines Include="--scanmibcforassembly:$(AssemblyName)" />
+      <ReproResponseLines Include="--scanmibclog:$(IlcScanMibcFile)" />
+      <ReproResponseLines Include="#--scanmibcforassembly:$(AssemblyName)" />
       <ReproResponseLines Include="--scanmibcforallgenerics" />
       <ReproResponseLines Include="#--scanmibclogdump" />
+      <ReproResponseLines Include="--fulllog" />
+      <ReproResponseLines Include="--scandgmllog:$(IlcScanDgmlFile)"/>
     </ItemGroup>
 
     <WriteLinesToFile File="$(IlcResponseFile)"

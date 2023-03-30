@@ -502,13 +502,6 @@ namespace ILCompiler
 
                 ILScanResults scanResults = scanner.Scan();
 
-                string scanMibcLogFileName = Get(_command.ScanMibcLogFileName);
-                if (!string.IsNullOrEmpty(scanMibcLogFileName))
-                {
-                    EmitScanResultsInMibcFormat(scanMibcLogFileName, scanResults);
-                    Environment.Exit(0); // do not proceed with processing
-                }
-
 #if DEBUG
                 scannerCompiledMethods = new List<MethodDesc>(scanResults.CompiledMethodBodies);
                 scannerConstructedTypes = new List<TypeDesc>(scanResults.ConstructedEETypes);
@@ -516,6 +509,13 @@ namespace ILCompiler
 
                 if (scanDgmlLogFileName != null)
                     scanResults.WriteDependencyLog(scanDgmlLogFileName);
+
+                string scanMibcLogFileName = Get(_command.ScanMibcLogFileName);
+                if (!string.IsNullOrEmpty(scanMibcLogFileName))
+                {
+                    EmitScanResultsInMibcFormat(scanMibcLogFileName, scanResults);
+                    Environment.Exit(0); // do not proceed with processing
+                }
 
                 metadataManager = ((UsageBasedMetadataManager)metadataManager).ToAnalysisBasedMetadataManager();
 
