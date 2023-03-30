@@ -50,8 +50,7 @@ For more information about available switches run ilc with `--help`
 | 42519  |49401  | +6882 |
 
 Around 7k symbols more in the final image when DAGO optimization is enabled.
-
-Two possible causes of such increase:
+After analyzing the output, three areas have been identified that cause such differences, listed bellow in form of tasks.
 
 ### Task I
 
