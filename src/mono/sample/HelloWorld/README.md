@@ -41,3 +41,62 @@ For example to include generic methods from all assemblies, the setup should loo
 ```
 For more information about available switches run ilc with `--help`
 
+## Progress report
+
+- Comparison of number of symbols present in the fullAOT compiled `System.Private.CoreLib` of the sample application:
+
+| MonoAOT no GSHAREDVTs  | DAGO+MonoAOT no GSHAREDVTs | Diff |
+| ------------- | ------------- | ------------- | 
+| 42519  |49401  | +6882 |
+
+Around 7k symbols more in the final image when DAGO optimization is enabled.
+
+Two possible causes of such increase:
+
+### Task I
+
+- Description: NAOT uses IList<T> to implement generic interfaces - this pulls in a lot of IList<T> dependencies across the board generating unneeded extra code
+- Solution: Implement an Array<T> wrapper for the mono Array implementation workarounds for generic interfaces
+- Approach: Implement a InternalGenericArrayWrapper<T> which maps all generic interface methods of a regular Array<T> internally to Mono's hardwired methods.
+Example: 
+
+```csharp
+    public class InternalGenericArrayWrapper<T> : Mono.Array, IEnumerable<T>, ...
+    {
+        ...
+        public IEnumerator<T> GetEnumerator()
+        {
+            return InternalArray__IEnumerable_GetEnumerator<T>();
+        }
+    }
+```
+
+Dealing with references to InternalGenericArrayWrapper:
+1. Try agressive inlining on all methods
+2. Exclude references to InternalGenericArrayWrapper type from .mibc profile
+3. Exclude references from the AOT image when estimating size savings
+ 
+### Task II
+
+- Description: When MonoAOT compiles DAGO methods it also performs dependency analysis on them pulling in more stuff (possible problems: full types, all methods, etc)
+- Solution: Disable MonoAOT dependency analysis during compilation of DAGO methods
+- Approach: Mark DAGO methods and compile only them - not their dependencies (use combination of fullaot and profile-only compilation switches)
+Additionally, depth parameter when compiling a generic instance might be used to prevent going deeper.
+
+### Task III
+
+- Description: Not all generic instances are included for compilation from DAGO profile
+- Solution: Use dedup optimization, as it will included compilation of all .mibc profile methods in the container image (aot-instances.dll)
+- Approach: Enable dedup in the current set up
+
+## Ideas on estimating size savings and coverage
+
+- Experiment:
+    - AOT compile only methods from the DAGO profile
+    - Track down and measure the percentage of methods being AOT compiler (if MonoAOT compiled everything from the profile - or more)
+    - Run the sample - for which and how many cases/methods do JIT or interpreter get triggered
+    - Size of the final output compared to fullAOT output
+
+## References
+
+- [Mono GSHAREDVT tests](../../../mono/mono/mini/gshared.cs)
