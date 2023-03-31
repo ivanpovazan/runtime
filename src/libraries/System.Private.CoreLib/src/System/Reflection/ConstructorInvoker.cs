@@ -3,13 +3,14 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Collections.Generic;
 
 namespace System.Reflection
 {
     internal sealed partial class ConstructorInvoker
     {
         private readonly RuntimeConstructorInfo _method;
-
+        private readonly object balanceLock = new object();
         private bool _invoked;
         private bool _strategyDetermined;
         private InvokerEmitUtil.InvokeFunc? _invokeFunc;
@@ -58,6 +59,20 @@ namespace System.Reflection
                         _invokeFunc = InvokerEmitUtil.CreateInvokeDelegate(_method);
                     }
                     _strategyDetermined = true;
+                }
+            }
+
+            lock (balanceLock)
+            {
+                var st = new System.Diagnostics.StackTrace(true);
+                if (IP_Diagnostics.InvokedMethods.TryGetValue(_method, out IList<(bool, string)>? entries))
+                {
+                    entries?.Add((_invokeFunc != null, st.ToString()));
+                }
+                else
+                {
+                    IP_Diagnostics.InvokedMethods[_method] = new List<(bool, string)>();
+                    IP_Diagnostics.InvokedMethods[_method].Add((_invokeFunc != null, st.ToString()));
                 }
             }
 

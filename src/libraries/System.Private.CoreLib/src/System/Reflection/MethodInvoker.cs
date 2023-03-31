@@ -3,12 +3,20 @@
 
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Collections.Generic;
 
 namespace System.Reflection
 {
+    public static partial class IP_Diagnostics
+    {
+        public static IDictionary<MethodBase, IList<(bool, string)>> GetInvokedMethods() => InvokedMethods;
+        internal static Dictionary<MethodBase, IList<(bool, string)>> InvokedMethods = new Dictionary<MethodBase, IList<(bool, string)>>();
+    }
+
     internal sealed partial class MethodInvoker
     {
         private readonly MethodBase _method;
+        private readonly object balanceLock = new object();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe object? InlinedInvoke(object? obj, IntPtr* args, BindingFlags invokeAttr)
@@ -42,6 +50,20 @@ namespace System.Reflection
                         _invokeFunc = InvokerEmitUtil.CreateInvokeDelegate(_method);
                     }
                     _strategyDetermined = true;
+                }
+            }
+
+            lock (balanceLock)
+            {
+                var st = new System.Diagnostics.StackTrace(true);
+                if (IP_Diagnostics.InvokedMethods.TryGetValue(_method, out IList<(bool, string)>? entries))
+                {
+                    entries?.Add((_invokeFunc != null, st.ToString()));
+                }
+                else
+                {
+                    IP_Diagnostics.InvokedMethods[_method] = new List<(bool, string)>();
+                    IP_Diagnostics.InvokedMethods[_method].Add((_invokeFunc != null, st.ToString()));
                 }
             }
 

@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <linker>
 	<assembly fullname="System.Private.CoreLib">
+		<type fullname="System.Reflection.IP_Diagnostics">
+			<method name="GetInvokedMethods" />
+		</type>
 		<!-- assembly-load-context.c: -->
 		<!-- object-internals.h: MonoManagedAssemblyLoadContext -->
 		<type fullname="System.Runtime.Loader.AssemblyLoadContext">

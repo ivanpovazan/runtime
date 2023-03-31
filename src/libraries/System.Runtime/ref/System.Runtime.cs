@@ -10635,6 +10635,11 @@ namespace System.Numerics
 }
 namespace System.Reflection
 {
+    public static partial class IP_Diagnostics 
+    {
+        public static System.Collections.Generic.IDictionary<System.Reflection.MethodBase, System.Collections.Generic.IList<(bool, string)>> GetInvokedMethods() { throw null; }
+    }
+
     public sealed partial class AmbiguousMatchException : System.SystemException
     {
         public AmbiguousMatchException() { }
