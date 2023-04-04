@@ -13696,7 +13696,13 @@ add_mibc_group_method_methods (MonoAotCompile *acfg, MonoMethod *mibcGroupMethod
 			continue;
 		}
 
-		count += add_single_profile_method (acfg, methodEntry);
+		int ret_val = add_single_profile_method (acfg, methodEntry);
+		if (ret_val == 0) {
+			aot_printf (acfg, "[MIBC-SKIP] %s\n", mono_method_full_name(methodEntry, FALSE));
+		} else {
+			aot_printf (acfg, "[MIBC-INCL] %s\n", mono_method_full_name(methodEntry, FALSE));
+		}
+		count += ret_val;
 	}
 	return count;
 }
