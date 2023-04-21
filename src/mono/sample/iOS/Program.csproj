@@ -18,6 +18,10 @@
     <TrimMode>Link</TrimMode>
   </PropertyGroup>
 
+  <ItemGroup Condition="'$(RunIlcDependencyAnalysis)' == 'true'">
+     <TrimmerRootDescriptor Include="$(MSBuildProjectDirectory)/ILLink.Descriptors.xml" />
+  </ItemGroup>
+
   <PropertyGroup Condition="'$(TargetOS)' == 'maccatalyst'">
     <DevTeamProvisioning Condition="'$(TargetOS)' == 'maccatalyst' and '$(DevTeamProvisioning)' == ''">adhoc</DevTeamProvisioning>
     <EnableAppSandbox Condition="'$(EnableAppSandbox)' == ''">false</EnableAppSandbox>
@@ -33,21 +37,85 @@
   <UsingTask TaskName="ILStrip"
              AssemblyFile="$(MonoTargetsTasksAssemblyPath)" />
 
-  <Target Name="BuildAppBundle" AfterTargets="CopyFilesToPublishDirectory">
+  <PropertyGroup Condition="'$(RunIlcDependencyAnalysis)' == 'true'">
+    <RunILCScanner>RunILCScanner</RunILCScanner>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(iOSLikeDedup)' == 'true'">
+    <GenDedupAssembly>GenDedupAssembly</GenDedupAssembly>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <AOTCompileAppDependsOn>
+      $(GenDedupAssembly);
+      SetupAOTProperties;
+      $(RunILCScanner);
+    </AOTCompileAppDependsOn>
+  </PropertyGroup>
+
+  <Target Name="SetupAOTProperties" DependsOnTargets="$(GenDedupAssembly)">
     <PropertyGroup>
       <AppDir>$(MSBuildThisFileDirectory)$(PublishDir)\app</AppDir>
       <IosSimulator Condition="'$(TargetsiOSSimulator)' == 'true'">iPhone 11</IosSimulator>
       <Optimized Condition="'$(Configuration)' == 'Release'">True</Optimized>
       <RunAOTCompilation Condition="('$(TargetsMacCatalyst)' == 'false' and '$(IosSimulator)' == '') or '$(ForceAOT)' == 'true'">true</RunAOTCompilation>
+
+      <AOTMode Condition="'$(TargetOS)' != 'maccatalyst'">Full</AOTMode>
+      <AOTMode Condition="'$(TargetOS)' == 'maccatalyst' and '$(MonoForceInterpreter)' != 'true'">Full</AOTMode>
+      <AOTMode Condition="'$(TargetOS)' == 'maccatalyst' and '$(MonoForceInterpreter)' == 'true'">JustInterp</AOTMode>
     </PropertyGroup>
 
-    <RemoveDir Directories="$(AppDir)" />
+    <ItemGroup>
+      <BundleAssemblies Condition="'$(RunAOTCompilation)' != 'true'" Include="$(MSBuildThisFileDirectory)$(PublishDir)\*.dll" />
+      <AotInputAssemblies Condition="'$(RunAOTCompilation)' == 'true'" Include="$(MSBuildThisFileDirectory)$(PublishDir)\*.dll">
+        <AotArguments>@(MonoAOTCompilerDefaultAotArguments, ';')</AotArguments>
+        <ProcessArguments Condition="'$(NoGsharedvt)' != 'true'">@(MonoAOTCompilerDefaultProcessArguments, ';')</ProcessArguments>
+      </AotInputAssemblies>
+    </ItemGroup>
+  </Target>
 
-    <PropertyGroup Condition="'$(iOSLikeDedup)' == 'true'">
+  <Target Name="RunILCScanner" DependsOnTargets="$(SetupAOTProperties)">
+    <PropertyGroup>
+      <IlcResponseFile>$(IntermediateOutputPath)\ilc-compile-with-$(Configuration)-libs.rsp</IlcResponseFile>
+      <IlcScanMibcFile>$(IntermediateOutputPath)\$(AssemblyName).mibc</IlcScanMibcFile>
+      <IlcScanDgmlFile>$(IntermediateOutputPath)\$(AssemblyName).dgml</IlcScanDgmlFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ReproResponseLines Include="$(PublishDir)$(AssemblyName)$(TargetExt)" />
+      <ReproResponseLines Include="-o:dummy.obj" />
+      <ReproResponseLines Include="@(AotInputAssemblies->'-r:%(Identity)')" />
+      <ReproResponseLines Include="@(AotInputAssemblies->'--root:%(Identity)')" />
+      <ReproResponseLines Include="--scan" />
+      <ReproResponseLines Include="--scanmibclog:$(IlcScanMibcFile)" />
+      <ReproResponseLines Include="#--scanmibcforassembly:$(AssemblyName)" />
+      <ReproResponseLines Include="--scanmibcforallgenerics" />
+      <ReproResponseLines Include="#--scanmibclogdump" />
+      <ReproResponseLines Include="--fulllog" />
+      <ReproResponseLines Include="--scandgmllog:$(IlcScanDgmlFile)"/>
+    </ItemGroup>
+
+    <WriteLinesToFile File="$(IlcResponseFile)"
+                  Lines="@(ReproResponseLines)"
+                  Overwrite="true"
+                  WriteOnlyWhenDifferent="true" />
+
+    <PropertyGroup>
+      <!-- FIXME: -->
+      <ILCompilerDir>$(MSBuildThisFileDirectory)..\..\..\..\artifacts\bin\coreclr\osx.$(BuildArchitecture).$(Configuration)\ilc-published\</ILCompilerDir>
+      <ILCompilerDir Condition="'$(ILCompilerDir)' == ''">$(CoreCLRILCompilerDir)</ILCompilerDir>
+    </PropertyGroup>
+
+    <Exec Command="&quot;$(ILCompilerDir)\ilc&quot; @&quot;$(IlcResponseFile)&quot;" ContinueOnError="WarnAndContinue" />
+  </Target>
+
+  <Target Name="GenDedupAssembly">
+    <PropertyGroup>
       <_iOSLikeDedupAssembly>$(MSBuildThisFileDirectory)$(PublishDir)\aot-instances.dll</_iOSLikeDedupAssembly>
     </PropertyGroup>
-    <WriteLinesToFile Condition="'$(iOSLikeDedup)' == 'true'" File="$(MSBuildThisFileDirectory)$(PublishDir)/aot-instances.cs" Overwrite="true" Lines="" WriteOnlyWhenDifferent="true" />
-    <Csc Condition="'$(iOSLikeDedup)' == 'true'"
+
+    <WriteLinesToFile File="$(MSBuildThisFileDirectory)$(PublishDir)/aot-instances.cs" Overwrite="true" Lines="" WriteOnlyWhenDifferent="true" />
+    <Csc
       Sources="$(MSBuildThisFileDirectory)$(PublishDir)\aot-instances.cs"
       OutputAssembly="$(_iOSLikeDedupAssembly)"
       TargetType="library"
@@ -55,20 +123,11 @@
       References="@(ReferencePath)"
       ToolExe="$(CscToolExe)"
       ToolPath="$(CscToolPath)" />
+  </Target>
 
-    <ItemGroup>
-      <BundleAssemblies Condition="'$(RunAOTCompilation)' != 'true'" Include="$(MSBuildThisFileDirectory)$(PublishDir)\*.dll" />
-      <AotInputAssemblies Condition="'$(RunAOTCompilation)' == 'true'" Include="$(MSBuildThisFileDirectory)$(PublishDir)\*.dll">
-        <AotArguments>@(MonoAOTCompilerDefaultAotArguments, ';')</AotArguments>
-        <ProcessArguments>@(MonoAOTCompilerDefaultProcessArguments, ';')</ProcessArguments>
-      </AotInputAssemblies>
-    </ItemGroup>
+  <Target Name="BuildAppBundle" AfterTargets="CopyFilesToPublishDirectory" DependsOnTargets="$(AOTCompileAppDependsOn)">
 
-    <PropertyGroup>
-      <AOTMode Condition="'$(TargetOS)' != 'maccatalyst'">Full</AOTMode>
-      <AOTMode Condition="'$(TargetOS)' == 'maccatalyst' and '$(MonoForceInterpreter)' != 'true'">Full</AOTMode>
-      <AOTMode Condition="'$(TargetOS)' == 'maccatalyst' and '$(MonoForceInterpreter)' == 'true'">JustInterp</AOTMode>
-    </PropertyGroup>
+    <RemoveDir Directories="$(AppDir)" />
 
     <MonoAOTCompiler
         Condition="'$(RunAOTCompilation)' == 'true'"
@@ -82,11 +141,13 @@
         OutputDir="$(PublishDir)"
         IntermediateOutputPath="$(IntermediateOutputPath)"
         UseLLVM="$(UseLLVM)"
-        LLVMPath="$(MonoAotCrossDir)">
+        LLVMPath="$(MonoAotCrossDir)"
+        MibcProfilePath="$(IlcScanMibcFile)"
+        MibcProfileOnly="false">
         <Output TaskParameter="CompiledAssemblies" ItemName="BundleAssemblies" />
     </MonoAOTCompiler>
 
-    <ILStrip Condition="'$(RunAOTCompilation)' == 'true' and '$(AOTMode)' == 'Full'" Assemblies="@(BundleAssemblies)" />
+    <!-- <ILStrip Condition="'$(RunAOTCompilation)' == 'true' and '$(AOTMode)' == 'Full'" Assemblies="@(BundleAssemblies)" /> -->
     <PropertyGroup>
       <RuntimeComponents Condition="'$(RuntimeComponents)' == ''">marshal-ilgen</RuntimeComponents>
     </PropertyGroup>
@@ -109,7 +170,8 @@
         EnableAppSandbox="$(EnableAppSandbox)"
         DiagnosticPorts="$(DiagnosticPorts)"
         StripSymbolTable="$(StripDebugSymbols)"
-        AppDir="$(MSBuildThisFileDirectory)$(PublishDir)">
+        AppDir="$(MSBuildThisFileDirectory)$(PublishDir)"
+        EnableRuntimeLogging="$(EnableRuntimeLogging)">
         <Output TaskParameter="AppBundlePath" PropertyName="AppBundlePath" />
         <Output TaskParameter="XcodeProjectPath" PropertyName="XcodeProjectPath" />
     </AppleAppBuilderTask>

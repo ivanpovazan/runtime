@@ -1,3 +1,4 @@
+TOP=../../../../
 MONO_CONFIG?=Debug
 MONO_ARCH?=x64
 DOTNET := ../../../../dotnet.sh
@@ -7,6 +8,9 @@ TARGET?=iossimulator
 DEPLOY_AND_RUN?=true
 APP_SANDBOX?=false
 STRIP_DEBUG_SYMBOLS?=false # only used when measuring SOD via build-appbundle make target
+NO_GSHVT?=false
+ILC_DA?=false
+LOG?=false
 
 #If DIAGNOSTIC_PORTS is enabled, RUNTIME_COMPONENTS must also be enabled.
 #If RUNTIME_COMPONENTS is enabled, DIAGNOSTIC_PORTS is optional.
@@ -88,5 +92,19 @@ run-catalyst-interp:
 	/p:EnableAppSandbox=$(APP_SANDBOX) \
 	/p:MonoForceInterpreter=true
 
+rundev: clean appbuilder
+	$(DOTNET) publish \
+	-c $(MONO_CONFIG) \
+	/p:TargetOS=ios \
+	/p:TargetArchitecture=arm64 \
+	/p:UseLLVM=true \
+	/p:ForceAOT=true \
+	/p:DeployAndRun=$(DEPLOY_AND_RUN) \
+	/p:NoGsharedvt=$(NO_GSHVT) \
+	/p:RunIlcDependencyAnalysis=$(ILC_DA) \
+	/p:EnableRuntimeLogging=$(LOG) \
+	-bl
+
 clean:
 	rm -rf bin
+	rm -rf $(TOP)artifacts/obj/mono/Program/

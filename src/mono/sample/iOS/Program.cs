@@ -35,6 +35,12 @@ public static class Program
             delegate* unmanaged<void> unmanagedPtr = &OnButtonClick;
             ios_register_button_click(unmanagedPtr);
         }
+        
+        CallbackManager cm = new();
+        var mgt1 = new MyGenType<byte>();
+        mgt1.Signup(cm);
+        cm.Invoke(mgt1);
+
         const string msg = "Hello World!\n.NET 8.0";
         for (int i = 0; i < msg.Length; i++)
         {
@@ -50,5 +56,37 @@ public static class Program
 #else
         await Task.Delay(-1);
 #endif 
+    }
+}
+
+public class MyGenType<T>
+{
+    public string TypeToString()
+    {
+        if (typeof(T) == typeof(byte))
+            return "BYTE";
+        else
+            return "UNSUPPORTED";
+    }
+
+    public void Signup(CallbackManager cm)
+    {
+        cm.Register(c => ((MyGenType<T>)c).TypeToString());
+    }
+}
+
+public class CallbackManager
+{
+    private Func<object, string> _cb;
+    public void Register(Func<object, string> cb)
+    {
+        _cb = cb;
+    }
+    public void Invoke(object param)
+    {
+        if (_cb == null)
+            Console.WriteLine("No registered callback");
+        else
+            Console.WriteLine($"Invoking callback: {_cb(param)}");
     }
 }

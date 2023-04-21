@@ -859,11 +859,16 @@ public class MonoAOTCompiler : Microsoft.Build.Utilities.Task
 
         if (MibcProfilePath.Length > 0)
         {
-            if (MibcProfileOnly)
-                aotArgs.Add("profile-only");
-            foreach (var path in MibcProfilePath)
+            // if dedup is not enabled pass profiles to AOTing every assembly
+            // if dedup is enabled pass profiles only to the dedup assembly
+            if (string.IsNullOrEmpty (DedupAssembly) || isDedup)
             {
-                aotArgs.Add($"mibc-profile={path}");
+                if (MibcProfileOnly)
+                    aotArgs.Add("profile-only");
+                foreach (var path in MibcProfilePath)
+                {
+                    aotArgs.Add($"mibc-profile={path}");
+                }
             }
         }
 
