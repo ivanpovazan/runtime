@@ -77,7 +77,7 @@
       UseAotDataFile="$(UseAotDataFile)"
       CacheFilePath="$(IntermediateOutputPath)aot_compiler_cache.json"
       Mode="$(AOTMode)"
-      MibcProfilePath="$(IlcMibcFile)"
+      MibcProfilePath="$(IlcScanMibcFile)"
       MibcProfileOnly="false">
       <Output TaskParameter="CompiledAssemblies" ItemName="BundleAssemblies" />
     </MonoAOTCompiler>
