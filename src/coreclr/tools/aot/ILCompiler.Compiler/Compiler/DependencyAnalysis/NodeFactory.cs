@@ -1042,7 +1042,7 @@ namespace ILCompiler.DependencyAnalysis
         {
             get
             {
-                return _systemArrayOfTClass ??= _context.SystemModule.GetKnownType("System.Collections.Generic", "List`1");
+                return _systemArrayOfTClass ??= _context.SystemModule.GetKnownType("System", "Array`1");
             }
         }
 

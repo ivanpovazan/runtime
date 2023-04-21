@@ -12675,7 +12675,11 @@ should_emit_extra_method_for_generics (MonoMethod *method, gboolean reference_ty
 	MonoGenericParam *gen_param = NULL;
 	unsigned int gen_param_count;
 
-	if (method->is_generic && mono_class_is_gtd (method->klass)) {
+	// We do not need to collect methods from Array`1 as they are inlined
+	// Additionally we do not need to expose it as reflection visible type (as its used only internally)
+	if (!strcmp(m_class_get_name(method->klass), "Array`1")) {
+		return FALSE;
+	} else if (method->is_generic && mono_class_is_gtd (method->klass)) {
 		// TODO: This is rarely encountered and would increase the complexity of covering such cases.
 		// For now always generate extra methods.
 		return TRUE;

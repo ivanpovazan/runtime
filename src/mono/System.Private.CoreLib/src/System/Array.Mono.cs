@@ -553,4 +553,59 @@ namespace System
         }
 #pragma warning restore CA1822
     }
+
+    //
+    // Used by NativeAOT dependency analysis scanner to implement generic interfaces on arrays.
+    // It wraps Mono's non-generic Array implementation which tries to avoid generating too many instances for
+    // specific generic interface methods.
+    //
+    public class Array<T> : Array, IEnumerable<T>, ICollection<T>, IList<T>, IReadOnlyList<T>
+    {
+        private Array() { }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public new IEnumerator<T> GetEnumerator() => base.InternalArray__IEnumerable_GetEnumerator<T>();
+
+        public int Count
+        {
+            get => base.InternalArray__ICollection_get_Count();
+        }
+
+        public new bool IsReadOnly
+        {
+            get => base.InternalArray__ICollection_get_IsReadOnly();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Add(T item) => base.InternalArray__ICollection_Add(item);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Clear() => base.InternalArray__ICollection_Clear();
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Contains(T item) => base.InternalArray__ICollection_Contains(item);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void CopyTo(T[] array, int arrayIndex) => base.InternalArray__ICollection_CopyTo(array, arrayIndex);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool Remove(T item) => base.InternalArray__ICollection_Remove(item);
+
+        public T this[int index]
+        {
+            get => base.InternalArray__get_Item<T>(index);
+            set => base.InternalArray__set_Item<T>(index, value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int IndexOf(T item) => base.InternalArray__IndexOf(item);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Insert(int index, T item) => base.InternalArray__Insert<T>(index, item);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void RemoveAt(int index) => base.InternalArray__RemoveAt(index);
+
+    }
+
 }

@@ -45,9 +45,10 @@ For more information about available switches run ilc with `--help`
 
 - Comparison of number of symbols present in the fullAOT compiled `System.Private.CoreLib` of the sample application:
 
-| MonoAOT no GSHAREDVTs  | DAGO+MonoAOT no GSHAREDVTs | Diff |
-| ------------- | ------------- | ------------- | 
-| 42519  |49401  | +6882 |
+| Version | MonoAOT no GSHAREDVTs  | DAGO+MonoAOT no GSHAREDVTs | Diff |
+| ------------- | ------------- | ------------- | ------------- |
+| v1  | 42519  |49401  | +6882 |
+| v2  | 42519  |43415  | +896 |
 
 Around 7k symbols more in the final image when DAGO optimization is enabled.
 After analyzing the output, three areas have been identified that cause such differences, listed bellow in form of tasks.
@@ -56,11 +57,11 @@ After analyzing the output, three areas have been identified that cause such dif
 
 - Description: NAOT uses IList<T> to implement generic interfaces - this pulls in a lot of IList<T> dependencies across the board generating unneeded extra code
 - Solution: Implement an Array<T> wrapper for the mono Array implementation workarounds for generic interfaces
-- Approach: Implement a InternalGenericArrayWrapper<T> which maps all generic interface methods of a regular Array<T> internally to Mono's hardwired methods.
+- Approach: Implement a Array<T> which maps all generic interface methods of a regular Array<T> internally to Mono's hardwired methods.
 Example: 
 
 ```csharp
-    public class InternalGenericArrayWrapper<T> : Mono.Array, IEnumerable<T>, ...
+    public class Array<T> : Mono.Array, IEnumerable<T>, ...
     {
         ...
         public IEnumerator<T> GetEnumerator()
@@ -70,9 +71,9 @@ Example:
     }
 ```
 
-Dealing with references to InternalGenericArrayWrapper:
+Dealing with references to Array:
 1. Try agressive inlining on all methods
-2. Exclude references to InternalGenericArrayWrapper type from .mibc profile
+2. Exclude references to Array type from .mibc profile
 3. Exclude references from the AOT image when estimating size savings
  
 ### Task II
