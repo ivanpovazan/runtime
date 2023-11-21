@@ -25,7 +25,8 @@ namespace Sample
         public JSInteropTask()
         {
             measurements = new Measurement[] {
-                new LegacyExportIntMeasurement(),
+                new LegacyExportIntMeasurement(), // this seems to be needed when NATIVEAOT_BENCH is defined as it roots some required methods
+#if !NATIVEAOT_BENCH
                 new JSExportIntMeasurement(),
                 new LegacyExportStringMeasurement(),
                 new JSExportStringMeasurement(),
@@ -35,6 +36,7 @@ namespace Sample
                 new JSImportTaskMeasurement(),
                 new JSImportTaskFailMeasurement(),
                 new JSImportFailMeasurement(),
+#endif
             };
         }
 
@@ -46,7 +48,9 @@ namespace Sample
             [DynamicDependency(DynamicallyAccessedMemberTypes.PublicMethods, "Sample.ImportsExportsHelper", Test.AssemblyName)]
             public override void RunStep()
             {
+#if !NATIVEAOT_BENCH
                 ImportsExportsHelper.RunLegacyExportInt(10000);
+#endif
             }
         }
 

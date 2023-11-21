@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishTrimmed>true</PublishTrimmed>
+    <MSBuildEnableWorkloadResolver>false</MSBuildEnableWorkloadResolver>
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>$(DefineConstants);NATIVEAOT_BENCH</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- TODO: Bump the version to 9.0.0-alpha* -->
+    <PackageReference Include="Microsoft.DotNet.ILCompiler.LLVM; runtime.win-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="8.0.0-*" />
+  </ItemGroup>
+
+  <Target Name="RunSample" DependsOnTargets="RunSampleWithV8" />
+
+  <ItemGroup>
+    <Compile Include="../*.cs" />
+    <Compile Remove="../Browser.cs" />
+    <Compile Include="../Console/Console.cs" />
+    <PackageReference Include="Mono.Options" Version="6.12.0.148" />
+  </ItemGroup>
+</Project>

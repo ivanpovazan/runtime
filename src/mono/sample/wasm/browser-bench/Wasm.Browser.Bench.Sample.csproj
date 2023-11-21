@@ -11,6 +11,7 @@
     <RunSampleDependencies>RunSampleWithBrowserAndSimpleServer</RunSampleDependencies>
     <RunSampleDependencies Condition="'$(BlazorStartup)' == 'true'">BuildBlazorFrame;$(RunSampleDependencies)</RunSampleDependencies>
     <RunSampleDependencies Condition="'$(BrowserStartup)' == 'true'">BuildBrowserFrame;$(RunSampleDependencies)</RunSampleDependencies>
+    <DefineConstants Condition="'$(BenchmarkNativeAOT)' == 'true'">$(DefineConstants);NATIVEAOT_BENCH</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +21,8 @@
     <WasmExtraFilesToDeploy Include="frame-main.js" />
     <WasmExtraFilesToDeploy Include="style.css" />
     <Compile Remove="Console/Console.cs" />
+    <Compile Condition="'$(BenchmarkNativeAOT)' != 'true'" Remove="NativeAOTExceptionHandlingTask.cs" />
+    <Compile Condition="'$(BenchmarkNativeAOT)' != 'true'" Remove="NativeAOTExceptionHandlingTests.cs" />
   </ItemGroup>
 
   <Target Name="RunSample" DependsOnTargets="$(RunSampleDependencies)" />

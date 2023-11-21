@@ -22,6 +22,10 @@ namespace Sample
 
         List<BenchTask> tasks = new()
         {
+#if NATIVEAOT_BENCH
+            new NativeAOTExceptionHandlingTask(),
+            new JSInteropTask(), // this seems to be needed when NATIVEAOT_BENCH is defined as it roots some required methods
+#else
             new AppStartTask(),
             new ExceptionsTask(),
             new JsonTask(),
@@ -30,6 +34,7 @@ namespace Sample
             new VectorTask(),
             new JSInteropTask(),
             new WebSocketTask(),
+#endif
         };
         public static Test Instance = new Test();
         Formatter formatter = new HTMLFormatter();

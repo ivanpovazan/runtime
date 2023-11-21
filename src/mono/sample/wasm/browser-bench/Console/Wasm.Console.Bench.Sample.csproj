@@ -6,6 +6,7 @@
     <WasmGenerateRunV8Script>true</WasmGenerateRunV8Script>
     <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
     <WasmNativeStrip>false</WasmNativeStrip>
+    <DefineConstants Condition="'$(BenchmarkNativeAOT)' == 'true'">$(DefineConstants);NATIVEAOT_BENCH</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -17,6 +18,8 @@
   <ItemGroup>
     <Compile Include="../*.cs" />
     <Compile Remove="../Browser.cs" />
+    <Compile Condition="'$(BenchmarkNativeAOT)' != 'true'" Remove="../NativeAOTExceptionHandlingTask.cs" />
+    <Compile Condition="'$(BenchmarkNativeAOT)' != 'true'" Remove="../NativeAOTExceptionHandlingTests.cs" />
     <PackageReference Include="Mono.Options" Version="6.12.0.148" />
   </ItemGroup>
 </Project>
