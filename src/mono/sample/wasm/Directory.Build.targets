@@ -54,11 +54,11 @@
   <Target Name="RunSampleWithV8" DependsOnTargets="BuildSampleInTree;_ComputeMainJSFileName">
     <Exec WorkingDirectory="bin/$(Configuration)/AppBundle" Command="v8 --expose_wasm --module $(_WasmMainJSFileName) -- $(DOTNET_MONO_LOG_LEVEL) --run $(_SampleAssembly) $(Args)" IgnoreExitCode="true" />
   </Target>
-  <Target Name="RunSampleWithNode" DependsOnTargets="BuildSampleInTree;_ComputeMainJSFileName">
-    <Exec WorkingDirectory="bin/$(Configuration)/AppBundle" Command="node --expose_wasm $(_WasmMainJSFileName) -- $(DOTNET_MONO_LOG_LEVEL) --run $(_SampleAssembly) $(Args)" IgnoreExitCode="true" />
+  <Target Name="RunSampleWithNode" DependsOnTargets="BuildSampleInTree;_ComputeMainJSFileName;ProbeNode">
+    <Exec WorkingDirectory="bin/$(Configuration)/AppBundle" Command="node $(_NodeExperimentalSwitches) --expose_wasm $(_WasmMainJSFileName) -- $(DOTNET_MONO_LOG_LEVEL) --run $(_SampleAssembly) $(Args)" IgnoreExitCode="true" />
   </Target>
-  <Target Name="DebugSampleWithNode" DependsOnTargets="BuildSampleInTree;_ComputeMainJSFileName">
-    <Exec WorkingDirectory="bin/$(Configuration)/AppBundle" Command="node --expose_wasm $(_WasmMainJSFileName) -- $(DOTNET_MONO_LOG_LEVEL) --run $(_SampleAssembly) $(Args) --inspect=9222" IgnoreExitCode="true" />
+  <Target Name="DebugSampleWithNode" DependsOnTargets="BuildSampleInTree;_ComputeMainJSFileName;ProbeNode">
+    <Exec WorkingDirectory="bin/$(Configuration)/AppBundle" Command="node $(_NodeExperimentalSwitches) --expose_wasm $(_WasmMainJSFileName) -- $(DOTNET_MONO_LOG_LEVEL) --run $(_SampleAssembly) $(Args) --inspect=9222" IgnoreExitCode="true" />
   </Target>
   <Target Name="CheckServe">
     <Exec Command="dotnet tool install -g dotnet-serve" IgnoreExitCode="true" />
@@ -75,4 +75,22 @@
           Condition="'$(GenerateRunScriptForSample)' == 'true'"
           BeforeTargets="CopyAppZipToHelixTestDir"
           DependsOnTargets="GenerateRunScriptForRunningSampleOnHelix" />
+
+  <Target Name="ProbeNode">
+
+    <Exec Command="node --version" ConsoleToMSBuild="true">
+      <Output TaskParameter="ExitCode" PropertyName="_NodeExitCode" />
+      <Output TaskParameter="ConsoleOutput" PropertyName="_NodeVersionString" />
+    </Exec>
+
+    <Error Condition="'$(_NodeExitCode)' != '0'" Text="node was not found. Make sure Node.js is installed on your system and is added to PATH." />
+
+    <PropertyGroup Condition="'$(_NodeExitCode)' == '0' and '$(_NodeVersionString)' != ''">
+      <_VersionRequiresExperimentalSwitches>20.5.0</_VersionRequiresExperimentalSwitches>
+      <_NodeVersion>$([System.Text.RegularExpressions.Regex]::Match($(_NodeVersionString), '\d+\.\d+\.\d+'))</_NodeVersion>
+      <_NodeExperimentalSwitches Condition="$(_NodeVersion) &lt; $(_VersionRequiresExperimentalSwitches)">--experimental-wasm-eh</_NodeExperimentalSwitches>
+    </PropertyGroup>
+
+  </Target>
+
 </Project>
