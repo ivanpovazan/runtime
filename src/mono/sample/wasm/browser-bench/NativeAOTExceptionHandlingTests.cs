@@ -5,11 +5,16 @@ using System;
 using System.Threading;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 // Assignment in conditional expression is always constant; did you mean to use == instead of = ? (No we did not).
 #pragma warning disable CS0665
 
+#if false
 internal unsafe partial class Program
+#else
+internal class NativeAOTExceptionHandlingTests
+#endif
 {
     internal static bool Success = true;
 
@@ -1925,6 +1930,7 @@ internal unsafe partial class Program
         catch { }
     }
 
+    [Conditional("ENABLE_NATIVEAOT_TESTS_LOGGING")]
     public static void StartTest(string testDescription) => PrintString(testDescription + ": ");
 
     public static void EndTest(bool result, string failMessage = null)
@@ -1939,8 +1945,10 @@ internal unsafe partial class Program
         }
     }
 
+    [Conditional("ENABLE_NATIVEAOT_TESTS_LOGGING")]
     public static void PassTest() => PrintLine("Ok.");
 
+    [Conditional("ENABLE_NATIVEAOT_TESTS_LOGGING")]
     public static void FailTest(string failMessage = null)
     {
         Success = false;
@@ -1948,7 +1956,8 @@ internal unsafe partial class Program
         if (failMessage != null) PrintLine(failMessage + "-");
     }
 
-    public static void PrintString(string s)
+    [Conditional("ENABLE_NATIVEAOT_TESTS_LOGGING")]
+    public unsafe static void PrintString(string s)
     {
         [DllImport("*")]
         static extern int printf(byte* str, byte* unused);
@@ -1965,6 +1974,7 @@ internal unsafe partial class Program
         }
     }
 
+    [Conditional("ENABLE_NATIVEAOT_TESTS_LOGGING")]
     public static void PrintLine(string s)
     {
         PrintString(s);
