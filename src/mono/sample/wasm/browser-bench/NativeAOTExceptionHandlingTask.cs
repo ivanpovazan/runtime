@@ -79,7 +79,7 @@ namespace Sample
         public abstract class ExcMeasurement : BenchTask.Measurement
         {
             // limit this to only 1000 runs as with Mono some complex filtering patterns take forever
-            public override int InitialSamples => 1;
+            public override int InitialSamples => 1000;
         }
 
         class Measure_TestTryCatchNoException : ExcMeasurement
