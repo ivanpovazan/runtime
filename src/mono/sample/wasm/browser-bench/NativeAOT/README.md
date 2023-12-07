@@ -1,6 +1,6 @@
-## NativeAOT wasm browser-bench variation
+# NativeAOT wasm browser-bench variation
 
-### Prerequisite
+## Prerequisite
 
 NativeAOT requires setting `EMSDK` environment variable to the matching (the version the runtime got built with) Emscripten SDK version in order to properly build/deploy the app.
 
@@ -8,7 +8,30 @@ NativeAOT requires setting `EMSDK` environment variable to the matching (the ver
 $env:EMSDK='C:\Users\ivanpovazan\repos\emsdk\'
 ```
 
-### Build
+## Build
+
+### Build-run via script
+
+There is a convenience build script which can run different targets with NativeAOT:
+
+```
+.\src\mono\sample\wasm\browser-bench\NativeAOT\build.ps1
+```
+
+The following parameters are available:
+- `build` - builds NativeAOT benchmarks with public NativeAOT-LLVM NuGet package
+- `buildLocal` - builds NativeAOT benchmarks with locally built NativeAOT-LLVM toolchain package
+- `run` - runs NativeAOT benchmarks with public NativeAOT-LLVM NuGet package
+- `runLocal` - runs NativeAOT benchmarks with locally built NativeAOT-LLVM toolchain package
+- `clean` - cleans NativeAOT browser bench artifacts
+
+Using locally built NativeAOT-LLVM toolchaing packages (`buildLocal` and `runLocal`) requires passing an additional parameter `-localPackageLocation` which should specify the location of the locally built packages e.g.,
+
+```
+.\src\mono\sample\wasm\browser-bench\NativeAOT\build.ps1 buildlocal -localPackageLocation C:\Users\ivanpovazan\repos\runtimelab\artifacts\packages\Release\Shipping
+```
+
+### Build manually
 
 From repo root:
 
@@ -16,7 +39,7 @@ From repo root:
 .\dotnet.cmd publish -c Release -r browser-wasm .\src\mono\sample\wasm\browser-bench\NativeAOT\Wasm.Console.Bench.Sample.csproj
 ```
 
-### Run
+### Run manually
 
 #### Browser
 
@@ -34,7 +57,7 @@ From repo root:
 node.exe .\src\mono\sample\wasm\browser-bench\NativeAOT\bin\Release\net8.0\browser-wasm\publish\Wasm.Console.Bench.Sample.js
 ```
 
-### Clean
+### Clean manually
 
 From repo root:
 
@@ -42,7 +65,7 @@ From repo root:
 rm -r .\src\mono\sample\wasm\browser-bench\NativeAOT\bin ; rm -r .\src\mono\sample\wasm\browser-bench\NativeAOT\obj
 ```
 
-### One-shot command
+### One-shot manual command
 
 From repo root:
 
@@ -50,7 +73,7 @@ From repo root:
 rm -r .\src\mono\sample\wasm\browser-bench\NativeAOT\bin ; rm -r .\src\mono\sample\wasm\browser-bench\NativeAOT\obj ; .\dotnet.cmd publish -c Release -r browser-wasm .\src\mono\sample\wasm\browser-bench\NativeAOT\Wasm.Console.Bench.Sample.csproj ; cp src\mono\sample\wasm\browser-bench\NativeAOT\bin\Release\net8.0\browser-wasm\publish\Wasm.Console.Bench.Sample.html src\mono\sample\wasm\browser-bench\NativeAOT\bin\Release\net8.0\browser-wasm\publish\index.html ; dotnet-serve.exe -o -d src\mono\sample\wasm\browser-bench\NativeAOT\bin\Release\net8.0\browser-wasm\publish
 ```
 
-### Limitations
+## Limitations
 
 - This setup works only on windows-x64
 - The setup only runs `Exceptions` benchmarks

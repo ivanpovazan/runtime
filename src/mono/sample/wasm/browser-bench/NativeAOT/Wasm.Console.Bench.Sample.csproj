@@ -11,9 +11,14 @@
     <DefineConstants>$(DefineConstants);NATIVEAOT_BENCH</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <RestoreAdditionalProjectSources Condition="'$(BuildWithLocalPackage)' == 'true'">$(LocalPackageLocation)</RestoreAdditionalProjectSources>
+    <RestoreAdditionalProjectSources Condition="'$(BuildWithLocalPackage)' != 'true'">https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-experimental/nuget/v3/index.json</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+  
   <ItemGroup>
-    <!-- TODO: Bump the version to 9.0.0-alpha* -->
-    <PackageReference Include="Microsoft.DotNet.ILCompiler.LLVM; runtime.win-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="8.0.0-*" />
+    <PackageReference Condition="'$(BuildWithLocalPackage)' == 'true'" Include="Microsoft.DotNet.ILCompiler.LLVM; runtime.win-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="9.0.0-dev" />
+    <PackageReference Condition="'$(BuildWithLocalPackage)' != 'true'" Include="Microsoft.DotNet.ILCompiler.LLVM; runtime.win-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="9.0.0-*" />
   </ItemGroup>
 
   <Target Name="RunSample" DependsOnTargets="RunSampleWithV8" />
