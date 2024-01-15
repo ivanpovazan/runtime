@@ -47,6 +47,8 @@
 
 static gboolean type_is_reference (MonoType *type);
 
+// TODO:
+static GENERATE_TRY_GET_CLASS_WITH_CACHE (readonly_collection, "System.Collections.ObjectModel", "ReadOnlyCollection`1")
 static GENERATE_GET_CLASS_WITH_CACHE (custom_attribute_typed_argument, "System.Reflection", "CustomAttributeTypedArgument");
 static GENERATE_GET_CLASS_WITH_CACHE (custom_attribute_named_argument, "System.Reflection", "CustomAttributeNamedArgument");
 static GENERATE_TRY_GET_CLASS_WITH_CACHE (customattribute_data, "System.Reflection", "RuntimeCustomAttributeData");
@@ -70,6 +72,14 @@ custom_attrs_idx_from_method (MonoMethod *method);
 static void
 metadata_foreach_custom_attr_from_index (MonoImage *image, guint32 idx, MonoAssemblyMetadataCustomAttrIterFunc func, gpointer user_data);
 
+static MonoObject*
+create_cattr_typed_arg (MonoType *t, MonoObject *val, MonoError *error);
+
+static MonoObject*
+create_cattr_typed_arg_readonly_collection (MonoObject *val, MonoError *error);
+
+static MonoObject*
+load_cattr_value_boxed (MonoDomain *domain, MonoImage *image, MonoType *t, const char* p, const char *boundp, const char** end, MonoError *error);
 
 /*
  * LOCKING: Acquires the loader lock.
@@ -505,7 +515,7 @@ MONO_RESTORE_WARNING
 		return NULL;
 	}
 	case MONO_TYPE_SZARRAY: {
-		MonoArray *arr;
+		MonoArray *arr = NULL;
 		guint32 i, alen, basetype;
 
 		if (!bcheck_blob (p, 3, boundp, error))
@@ -517,98 +527,22 @@ MONO_RESTORE_WARNING
 			return NULL;
 		}
 
-		arr = mono_array_new_checked (tklass, alen, error);
+		MonoType *array_element_type = m_class_get_byval_arg (tklass);
+		arr = mono_array_new_checked (mono_class_get_custom_attribute_typed_argument_class (), alen, error);
 		return_val_if_nok (error, NULL);
 
-		basetype = m_class_get_byval_arg (tklass)->type;
-		if (basetype == MONO_TYPE_VALUETYPE && m_class_is_enumtype (tklass))
-			basetype = mono_class_enum_basetype_internal (tklass)->type;
+		for (i = 0; i < alen; i++) {
+			MonoObject *array_element_boxed = load_cattr_value_boxed (mono_domain_get (), image, array_element_type, p, boundp, &p, error);
+			return_val_if_nok (error, NULL);
 
-		if (basetype == MONO_TYPE_GENERICINST) {
-			MonoGenericClass * mgc = m_class_get_byval_arg (tklass)->data.generic_class;
-			MonoClass * cc = mgc->container_class;
-			if (m_class_is_enumtype (cc)) {
-				basetype = m_class_get_byval_arg (m_class_get_element_class (cc))->type;
-			} else {
-				g_error ("Unhandled type of generic instance in load_cattr_value: %s[]", m_class_get_name (cc));
-			}
-		}
-
-		switch (basetype) {
-		case MONO_TYPE_U1:
-		case MONO_TYPE_I1:
-		case MONO_TYPE_BOOLEAN:
-			for (i = 0; i < alen; i++) {
-				if (!bcheck_blob (p, 0, boundp, error))
-					return NULL;
-				MonoBoolean val = *p++;
-				mono_array_set_internal (arr, MonoBoolean, i, val);
-			}
-			break;
-		case MONO_TYPE_CHAR:
-		case MONO_TYPE_U2:
-		case MONO_TYPE_I2:
-			for (i = 0; i < alen; i++) {
-				if (!bcheck_blob (p, 1, boundp, error))
-					return NULL;
-				guint16 val = read16 (p);
-				mono_array_set_internal (arr, guint16, i, val);
-				p += 2;
-			}
-			break;
-		case MONO_TYPE_R4:
-		case MONO_TYPE_U4:
-		case MONO_TYPE_I4:
-			for (i = 0; i < alen; i++) {
-				if (!bcheck_blob (p, 3, boundp, error))
-					return NULL;
-				guint32 val = read32 (p);
-				mono_array_set_internal (arr, guint32, i, val);
-				p += 4;
-			}
-			break;
-		case MONO_TYPE_R8:
-			for (i = 0; i < alen; i++) {
-				if (!bcheck_blob (p, 7, boundp, error))
-					return NULL;
-				double val;
-				readr8 (p, &val);
-				mono_array_set_internal (arr, double, i, val);
-				p += 8;
-			}
-			break;
-		case MONO_TYPE_U8:
-		case MONO_TYPE_I8:
-			for (i = 0; i < alen; i++) {
-				if (!bcheck_blob (p, 7, boundp, error))
-					return NULL;
-				guint64 val = read64 (p);
-				mono_array_set_internal (arr, guint64, i, val);
-				p += 8;
-			}
-			break;
-		case MONO_TYPE_CLASS:
-		case MONO_TYPE_OBJECT:
-		case MONO_TYPE_STRING:
-		case MONO_TYPE_SZARRAY: {
-			HANDLE_FUNCTION_ENTER ();
-			MONO_HANDLE_NEW (MonoArray, arr);
-
-			for (i = 0; i < alen; i++) {
-				MonoObject *item = NULL;
-				load_cattr_value (image, m_class_get_byval_arg (tklass), &item, p, boundp, &p, error);
-				if (!is_ok (error))
-					return NULL;
-				mono_array_setref_internal (arr, i, item);
-			}
-			HANDLE_FUNCTION_RETURN ();
-			break;
-		}
-		default:
-			g_error ("Type 0x%02x not handled in custom attr array decoding", basetype);
+			MonoObject *array_element_as_cattr_typed_arg = create_cattr_typed_arg (array_element_type, array_element_boxed, error);
+			return_val_if_nok (error, NULL);
+			
+			mono_array_setref_internal (arr, i, array_element_as_cattr_typed_arg);
 		}
 		*end = p;
 		g_assert (out_obj);
+		// TODO: wrap the output in System.Collections.ObjectModel.ReadOnlyCollection`1[System.Reflection.CustomAttributeTypedArgument]
 		*out_obj = (MonoObject*)arr;
 
 		return NULL;
@@ -886,6 +820,40 @@ create_cattr_typed_arg (MonoType *t, MonoObject *val, MonoError *error)
 
 	params [1] = val;
 	retval = mono_object_new_checked (mono_class_get_custom_attribute_typed_argument_class (), error);
+	return_val_if_nok (error, NULL);
+	MONO_HANDLE_PIN (retval);
+
+	unboxed = mono_object_unbox_internal (retval);
+
+	mono_runtime_invoke_checked (ctor, unboxed, params, error);
+	return_val_if_nok (error, NULL);
+
+	HANDLE_FUNCTION_RETURN ();
+
+	return retval;
+}
+
+// TODO: function which should wrap val into ReadOnlyCollection<T>
+// via ctor -> public ReadOnlyCollection (System.Collections.Generic.IList<T> list);
+static MonoObject*
+create_cattr_typed_arg_readonly_collection (MonoObject *val, MonoError *error)
+{
+	MonoObject *retval;
+	void *params [1], *unboxed;
+
+	error_init (error);
+
+	HANDLE_FUNCTION_ENTER ();
+
+	MONO_STATIC_POINTER_INIT (MonoMethod, ctor)
+
+		ctor = mono_class_get_method_from_name_checked (mono_class_try_get_readonly_collection_class (), ".ctor", 1, 0, error);
+		mono_error_assert_ok (error);
+
+	MONO_STATIC_POINTER_INIT_END (MonoMethod, ctor)
+
+	params [0] = val;
+	retval = mono_object_new_checked (mono_class_try_get_readonly_collection_class (), error);
 	return_val_if_nok (error, NULL);
 	MONO_HANDLE_PIN (retval);
 

@@ -1,19 +1,46 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Reflection;
 
 namespace HelloWorld
 {
+    public sealed class AttributeWithIntArrayArgument : Attribute
+    {
+        public AttributeWithIntArrayArgument(params int[] ints)
+        {
+        }
+    }
+
+    [AttributeWithIntArrayArgument(1, 2, 3)]
+    public interface IHasAttributeWithIntArray
+    {
+    }
+
     internal class Program
     {
         private static void Main(string[] args)
         {
-            bool isMono = typeof(object).Assembly.GetType("Mono.RuntimeStructs") != null;
-            Console.WriteLine($"Hello World {(isMono ? "from Mono!" : "from CoreCLR!")}");
-            Console.WriteLine(typeof(object).Assembly.FullName);
-            Console.WriteLine(System.Reflection.Assembly.GetEntryAssembly ());
-            Console.WriteLine(System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription);
+            Type targetType = typeof(IHasAttributeWithIntArray);
+
+            var attributes = targetType.CustomAttributes;
+            foreach (var attribute in attributes)
+            {
+                var typedArgs = attribute.ConstructorArguments;
+                int i = 0;
+                foreach (var typedArg in typedArgs)
+                {
+                    Console.WriteLine($"typedArgs{i}.ArgumentType = {typedArg.ArgumentType}");
+                    Console.WriteLine($"typedArgs{i}.Value = {typedArg.Value}");
+                    var argElems = (System.Reflection.CustomAttributeTypedArgument[])typedArg.Value;
+                    int j = 0;
+                    foreach (var argElem in argElems)
+                    {
+                        Console.WriteLine($"argElems{j}.ArgumentType = {argElem.ArgumentType}");
+                        Console.WriteLine($"argElems{j}.Value = {argElem.Value}");
+                        j++;
+                    }
+                }
+            }
         }
     }
 }
