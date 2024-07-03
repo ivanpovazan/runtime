@@ -302,7 +302,7 @@ extends:
                   name: NativeAOTRuntimePacks
 
       #
-      # Build Mono runtime packs
+      # Build workload independent Mono runtime packs
       #
       - template: /eng/pipelines/common/platform-matrix.yml
         parameters:
@@ -310,18 +310,6 @@ extends:
           buildConfig: release
           runtimeFlavor: mono
           platforms:
-          - android_x64
-          - android_x86
-          - android_arm
-          - android_arm64
-          - maccatalyst_x64
-          - maccatalyst_arm64
-          - tvossimulator_x64
-          - tvossimulator_arm64
-          - tvos_arm64
-          - iossimulator_x64
-          - iossimulator_arm64
-          - ios_arm64
           - osx_x64
           - osx_arm64
           - linux_x64
@@ -352,10 +340,41 @@ extends:
           runtimeFlavor: mono
           platforms:
           - browser_wasm
-          - wasi_wasm
           jobParameters:
             templatePath: 'templates-official'
-            buildArgs: -s mono+libs+host+packs -c $(_BuildConfig) /p:AotHostArchitecture=x64 /p:AotHostOS=$(_hostedOS)
+            buildArgs: -s mono+libs+host+packs -c $(_BuildConfig) /p:WasmEnableThreads=true /p:AotHostArchitecture=x64 /p:AotHostOS=$(_hostedOS)
+            nameSuffix: Mono_multithread
+            isOfficialBuild: ${{ variables.isOfficialBuild }}
+            runtimeVariant: multithread
+            postBuildSteps:
+              - template: /eng/pipelines/common/upload-intermediate-artifacts-step.yml
+                parameters:
+                  name: MonoRuntimePacks
+
+      #
+      # Build workload dependent Mono runtime packs
+      #
+      - template: /eng/pipelines/common/platform-matrix.yml
+        parameters:
+          jobTemplate: /eng/pipelines/common/global-build-job.yml
+          buildConfig: release
+          runtimeFlavor: mono
+          platforms:
+          - android_x64
+          - android_x86
+          - android_arm
+          - android_arm64
+          - maccatalyst_x64
+          - maccatalyst_arm64
+          - tvossimulator_x64
+          - tvossimulator_arm64
+          - tvos_arm64
+          - iossimulator_x64
+          - iossimulator_arm64
+          - ios_arm64
+          jobParameters:
+            templatePath: 'templates-official'
+            buildArgs: -s mono+libs+host+packs -c $(_BuildConfig) /p:BuildMonoAOTCrossCompiler=false /p:BuildMonoTargetsSdkPack=true
             nameSuffix: Mono
             isOfficialBuild: ${{ variables.isOfficialBuild }}
             postBuildSteps:
@@ -370,17 +389,16 @@ extends:
           runtimeFlavor: mono
           platforms:
           - browser_wasm
+          - wasi_wasm
           jobParameters:
             templatePath: 'templates-official'
-            buildArgs: -s mono+libs+host+packs -c $(_BuildConfig) /p:WasmEnableThreads=true /p:AotHostArchitecture=x64 /p:AotHostOS=$(_hostedOS)
-            nameSuffix: Mono_multithread
+            buildArgs: -s mono+libs+host+packs -c $(_BuildConfig) /p:AotHostArchitecture=x64 /p:AotHostOS=$(_hostedOS) /p:BuildMonoTargetsSdkPack=true
+            nameSuffix: Mono
             isOfficialBuild: ${{ variables.isOfficialBuild }}
-            runtimeVariant: multithread
             postBuildSteps:
               - template: /eng/pipelines/common/upload-intermediate-artifacts-step.yml
                 parameters:
                   name: MonoRuntimePacks
-
 
       # Build Mono AOT offset headers once, for consumption elsewhere
       #
@@ -422,7 +440,7 @@ extends:
                 artifactName: 'Mono_Offsets_$(osGroup)$(osSubGroup)'
 
       #
-      # Build Mono release AOT cross-compilers
+      # Build workload independent Mono release AOT cross-compilers
       #
       - template: /eng/pipelines/common/platform-matrix.yml
         parameters:
@@ -434,34 +452,6 @@ extends:
           - linux_musl_x64
           - linux_arm64
           - linux_musl_arm64
-          jobParameters:
-            templatePath: 'templates-official'
-            buildArgs: -s mono+packs -c $(_BuildConfig)
-                      /p:MonoCrossAOTTargetOS=android+browser+wasi /p:SkipMonoCrossJitConfigure=true /p:BuildMonoAOTCrossCompilerOnly=true
-            nameSuffix: CrossAOT_Mono
-            runtimeVariant: crossaot
-            dependsOn:
-            - build_android_x64_release_MonoAOTOffsets
-            - build_browser_wasm_linux_release_MonoAOTOffsets
-            - build_wasi_wasm_linux_release_MonoAOTOffsets
-            monoCrossAOTTargetOS:
-            - android
-            - browser
-            - wasi
-            isOfficialBuild: ${{ variables.isOfficialBuild }}
-            postBuildSteps:
-              - template: /eng/pipelines/common/upload-intermediate-artifacts-step.yml
-                parameters:
-                  name: MonoRuntimePacks
-
-      - template: /eng/pipelines/common/platform-matrix.yml
-        parameters:
-          jobTemplate: /eng/pipelines/common/global-build-job.yml
-          runtimeFlavor: mono
-          buildConfig: release
-          platforms:
-          - windows_arm64
-          - windows_x64
           jobParameters:
             templatePath: 'templates-official'
             buildArgs: -s mono+packs -c $(_BuildConfig)
@@ -510,6 +500,37 @@ extends:
             - tvos
             - ios
             - maccatalyst
+            isOfficialBuild: ${{ variables.isOfficialBuild }}
+            postBuildSteps:
+              - template: /eng/pipelines/common/upload-intermediate-artifacts-step.yml
+                parameters:
+                  name: MonoRuntimePacks
+
+      #
+      # Build workload dependent Mono release AOT cross-compilers
+      #
+      - template: /eng/pipelines/common/platform-matrix.yml
+        parameters:
+          jobTemplate: /eng/pipelines/common/global-build-job.yml
+          runtimeFlavor: mono
+          buildConfig: release
+          platforms:
+          - windows_arm64
+          - windows_x64
+          jobParameters:
+            templatePath: 'templates-official'
+            buildArgs: -s mono+packs -c $(_BuildConfig)
+                      /p:MonoCrossAOTTargetOS=android+browser+wasi /p:SkipMonoCrossJitConfigure=true /p:BuildMonoAOTCrossCompilerOnly=true /p:BuildMonoTargetsSdkPack=true
+            nameSuffix: CrossAOT_Mono
+            runtimeVariant: crossaot
+            dependsOn:
+            - build_android_x64_release_MonoAOTOffsets
+            - build_browser_wasm_linux_release_MonoAOTOffsets
+            - build_wasi_wasm_linux_release_MonoAOTOffsets
+            monoCrossAOTTargetOS:
+            - android
+            - browser
+            - wasi
             isOfficialBuild: ${{ variables.isOfficialBuild }}
             postBuildSteps:
               - template: /eng/pipelines/common/upload-intermediate-artifacts-step.yml
